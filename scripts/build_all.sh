@@ -6,7 +6,8 @@ cd ..
 
 set -e # stop on error
 
-rm -rf "$TEMP_DIR"
+./scripts/clean.sh
+
 mkdir "$TEMP_DIR"
 
 

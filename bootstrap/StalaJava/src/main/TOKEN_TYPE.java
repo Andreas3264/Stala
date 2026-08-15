@@ -1,4 +1,4 @@
-package utility;
+package main;
 
 public enum TOKEN_TYPE {
 	

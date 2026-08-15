@@ -2,11 +2,6 @@ package main;
 
 import java.util.Iterator;
 
-import utility.Logger;
-import utility.TOKEN_TYPE;
-import utility.Token;
-import utility.StringUtill;
-
 public class Tokenizer implements Iterator<Token> {
 	
 	private Token next;
@@ -14,24 +9,6 @@ public class Tokenizer implements Iterator<Token> {
 	private int row = 1;
 	private int col = 1;
 	private final Iterator<Character> charIter;
-	
-	private static String spacer = "\s\n\t";
-	private static String lowerCase = "abcdefghijklmnopqrstuvwxyz";
-	private static String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	private static String alpha = upperCase + lowerCase;
-	private static String number = "0123456789";
-	private static String alphaNum = alpha + number;
-	private static String identifierFirstChar = alpha + "_";
-	private static String identifierOtherChar = alphaNum + "_";
-	
-	private static String[] specialIdentifiers = new String[] 
-			{
-					"+", "++", "-", "--", "*", "/", "%",
-					">>", "<<",
-					">", ">=", "<", "<=", "=", "!=", 
-					"!8", "!ptr", "?8", "?ptr",
-					"sizeof(ptr)",
-			};
 	
 	public Tokenizer(Iterator<Character> charIter, String sourceName)
 	{
@@ -111,7 +88,7 @@ public class Tokenizer implements Iterator<Token> {
 			if((char)ch == '\n')
 				comment = false;
 			
-			if(!isCharInString((char) ch, spacer) && !comment)
+			if(!StringUtill.isSpacer((char) ch) && !comment)
 			{
 				break;
 			}
@@ -128,7 +105,7 @@ public class Tokenizer implements Iterator<Token> {
 				next = buildToken(tok, t_col, t_row);
 				return;
 			}
-			if(isCharInString((char) ch, spacer) && string == false)
+			if(StringUtill.isSpacer((char) ch) && string == false)
 			{
 				next = buildToken(tok, t_col, t_row);
 				return;
@@ -228,49 +205,6 @@ public class Tokenizer implements Iterator<Token> {
 			return TOKEN_TYPE.ASM;
 		}
 		
-		if(isIdentifier(tok) || isSpecialIdentifier(tok))
-		{
-			return TOKEN_TYPE.IDENTIFIER;
-		}
-		
-		Logger.failTokenize("Invalid token: " + tok, sourceName, row, col);
-		return null;
+		return TOKEN_TYPE.IDENTIFIER;
 	}
-	
-	private boolean isSpecialIdentifier(String s)
-	{
-		for(String str : specialIdentifiers)
-		{
-			if(s.equals(str))
-				return true;
-		}
-		return false;
-	}
-	
-	private boolean isIdentifier(String s)
-	{
-		char [] ch = s.toCharArray();
-		for(int i = 0; i < ch.length; i++)
-		{
-			char c = ch[i];
-			if(!(
-				(i == 0 && isCharInString(c, identifierFirstChar)) || 
-				(i != 0 && isCharInString(c, identifierOtherChar))))
-				return false;
-		}
-		return true;
-	}
-	
-	private boolean isCharInString(char ch, String s)
-	{
-		for(char c : s.toCharArray())
-		{
-			if(c == ch)
-				return true;
-		}
-		return false;
-	}
-
-	
-
 }

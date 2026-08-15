@@ -8,14 +8,6 @@ import java.util.List;
 import java.util.Stack;
 import java.util.Map.Entry;
 
-import utility.FileCharacterIterator;
-import utility.Function;
-import utility.Program;
-import utility.Source;
-import utility.StringUtill;
-import utility.TOKEN_TYPE;
-import utility.Token;
-
 public class Main {
 
 	public static String input = "";

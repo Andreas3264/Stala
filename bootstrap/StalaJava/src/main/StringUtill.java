@@ -1,4 +1,4 @@
-package utility;
+package main;
 
 public class StringUtill {
 	
@@ -38,8 +38,6 @@ public class StringUtill {
 			}
 			
 		}
-		
-		
 		return ret;
 	}
 	
@@ -53,14 +51,29 @@ public class StringUtill {
 		return isInString(c, "abcdefghijklmnopqrstuvwxyz");
 	}
 	
+	public static boolean isAlpha(char c)
+	{
+		return isUpper(c) || isLower(c);
+	}
+	
 	public static boolean isNumber(char c)
 	{
 		return isInString(c, "0123456789");
 	}
 	
+	public static boolean isAlphaNum(char c)
+	{
+		return isAlpha(c) || isNumber(c);
+	}
+	
 	public static boolean isMisc(char c)
 	{
 		return isInString(c, ",;.:_'!#%&()=?+-*/<>[](){}@$^~| ");
+	}
+	
+	public static boolean isSpacer(char c)
+	{
+		return isInString(c, "\s\n\t");
 	}
 	
 	public static boolean isEscaped(char c)
@@ -70,7 +83,7 @@ public class StringUtill {
 	
 	public static boolean validSourceFileCharacter(char ch)
 	{
-		return isUpper(ch) || isLower(ch) || isNumber(ch) || isMisc(ch) || isEscaped(ch);
+		return isAlphaNum(ch) || isMisc(ch) || isEscaped(ch);
 	}
 	
 	public static boolean isInString(char c, String s)

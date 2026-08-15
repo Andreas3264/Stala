@@ -1,4 +1,4 @@
-package utility;
+package main;
 
 public class Token {
 	public final String label = getLabel();
