@@ -28,7 +28,8 @@ cd ..
 FIRST="R1"
 echo "compiling $FIRST with original Java compiler"
 cd bootstrap/"$FIRST"
-java -cp ../../"$TEMP_DIR"/StalaJava/bin/ main/Main stala compiler.stala -out ../../"$TEMP_DIR"/compiler_"$FIRST"
+./merge.sh
+java -cp ../../"$TEMP_DIR"/StalaJava/bin/ main/Main stala ../../"$TEMP_DIR"/compiler_"$FIRST".stala -out ../../"$TEMP_DIR"/compiler_"$FIRST"
 nasm -f macho64 ../../"$TEMP_DIR"/compiler_"$FIRST".asm
 ld -macosx_version_min 11.0 -L /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib -lSystem -o ../../"$TEMP_DIR"/compiler_"$FIRST" ../../"$TEMP_DIR"/compiler_"$FIRST".o
 chmod +x ../../"$TEMP_DIR"/compiler_"$FIRST"
