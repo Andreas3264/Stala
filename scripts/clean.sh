@@ -4,4 +4,4 @@ cd "$(dirname "$0")"
 source build.conf
 cd ..
 
-rm -rf "$TEMP_DIR"
+rm -rf "$TEMP_DIR" "$DIST_DIR"
