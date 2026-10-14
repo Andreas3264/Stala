@@ -1,8 +1,5 @@
 .DS_Store
 /unused
-/bootstrap/R2
-/bootstrap/R3
-/bootstrap/R4
 /bootstrap/StalaJava/bin
 /bootstrap/StalaJava/.classpath
 /bootstrap/StalaJava/.project

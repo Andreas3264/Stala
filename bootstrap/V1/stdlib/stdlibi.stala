@@ -1,7 +1,0 @@
-include "stdlib/interpreter_asm.stala"
-include "stdlib/system.stala"
-include "stdlib/string.stala"
-include "stdlib/stdio.stala"
-include "stdlib/memory.stala"
-include "stdlib/file.stala"
-include "stdlib/collections.stala"
