@@ -2,72 +2,7 @@
 func print_comments_enabled do false end
 
 func bytes_per_register do 8 end
-func local_inlined_max do 16 end
 func func_auto_reserve do 256 end
-
-#
-# PRE DEFINED FUNCTIONS
-#
-
-func out_func_push_reg reg do
-
-	reg "rax" streq if
-		"rbx" let tmp_reg
-	else
-		"rax" let tmp_reg
-	end
-
-	"\n" out_asm
-	";; push " out_asm reg out_asm " to the data stack\n" out_asm
-	"push_" out_asm reg out_asm ":\n" out_asm								# declare the function
-	"push " out_asm tmp_reg out_asm "\n" out_asm 							# save the temporary register
-	"mov " out_asm tmp_reg out_asm ", [rel dsp]\n" out_asm						# load DSP into the temporary register
-	"mov [" out_asm tmp_reg out_asm "], " out_asm reg out_asm "\n" out_asm				# save the target register to the data stack
-	"add " out_asm tmp_reg out_asm ", " out_asm bytes_per_register out_asm_number "\n" out_asm	# move up to a empty element
-	"mov [rel dsp], " out_asm tmp_reg out_asm "\n" out_asm						# save the temporary register to DSP
-	"pop " out_asm tmp_reg out_asm "\n" out_asm 							# restore the temporary register
-	"ret\n" out_asm
-end
-
-func out_func_pop_reg reg do # TODO: change working register
-
-	reg "rax" streq if
-		"rbx" let tmp_reg
-	else
-		"rax" let tmp_reg
-	end
-
-	"\n" out_asm
-	";; pop " out_asm reg out_asm " from the data stack\n" out_asm
-	"pop_" out_asm reg out_asm ":\n" out_asm								# declare the function
-	"push " out_asm tmp_reg out_asm "\n" out_asm 							# save the temporary register
-	"mov " out_asm tmp_reg out_asm ", [rel dsp]\n" out_asm						# load DSP into the temporary register
-	"sub " out_asm tmp_reg out_asm ", " out_asm bytes_per_register out_asm_number "\n" out_asm	# move down to a valid element
-	"mov " out_asm reg out_asm ", [" out_asm tmp_reg out_asm "]\n" out_asm				# load the target register with the element on the data stack
-	"mov [rel dsp], " out_asm tmp_reg out_asm "\n" out_asm						# save the temporary register to DSP
-	"pop " out_asm tmp_reg out_asm "\n" out_asm 							# restore the temporary register
-	"ret\n" out_asm
-end
-
-func out_func_push_local index do
-	"\n" out_asm
-	";; push local variable with index " out_asm index out_asm_number " \n" out_asm
-	"pushl_" out_asm index out_asm_number ":\n" out_asm
-	"mov rbx, [rel lsp]\n" out_asm
-	"mov rax, [rbx + " out_asm index bytes_per_register * out_asm_number "]\n" out_asm
-	"call push_rax\n" out_asm
-	"ret\n" out_asm
-end
-
-func out_func_pop_local index do
-	"\n" out_asm
-	";; pop local variable with index " out_asm index out_asm_number " \n" out_asm
-	"popl_" out_asm index out_asm_number ":\n" out_asm
-	"call pop_rax\n" out_asm
-	"mov rbx, [rel lsp]\n" out_asm
-	"mov [rbx + " out_asm index bytes_per_register * out_asm_number "], rax\n" out_asm
-	"ret\n" out_asm
-end
 
 #
 # ASSEMBLY OUTPUT
@@ -112,49 +47,6 @@ func out_section_code main_function_index do
 	"mov rdi, 0\n" out_asm
 	"syscall\n" out_asm
 	"\n" out_asm
-
-	# utility functions
-
-	"\n" out_asm
-	";; start of utility functions\n" out_asm
-
-	"rax" out_func_push_reg
-	"rax" out_func_pop_reg
-
-	"rbx" out_func_push_reg
-	"rbx" out_func_pop_reg
-
-	"rcx" out_func_push_reg
-	"rcx" out_func_pop_reg
-
-	"rdx" out_func_push_reg
-	"rdx" out_func_pop_reg
-
-	"rdi" out_func_push_reg
-	"rdi" out_func_pop_reg
-
-	"rsi" out_func_push_reg
-	"rsi" out_func_pop_reg
-
-	"r10" out_func_push_reg
-	"r10" out_func_pop_reg
-
-	"r9" out_func_push_reg
-	"r9" out_func_pop_reg
-
-	"r8" out_func_push_reg
-	"r8" out_func_pop_reg
-
-	0 let i
-	while i local_inlined_max < do
-		i out_func_push_local
-		i out_func_pop_local
-		i ++ let i
-	end
-
-	"\n" out_asm
-	";; end of utility functions\n" out_asm
-
 end
 
 func out_section_data do
@@ -212,13 +104,6 @@ func out_function_end index do
 end
 
 func out_push_local index do
-
-	# reduce final .asm size by using a existing function
-	index local_inlined_max < if
-		"call pushl_" out_asm index out_asm_number "\n" out_asm
-		ret
-	end
-
 	print_comments_enabled if ";; push local variable\n" out_asm  end
 	"mov rbx, [rel lsp]\n" out_asm
 	"mov rax, [rbx + " out_asm index bytes_per_register * out_asm_number "]\n" out_asm
@@ -226,13 +111,6 @@ func out_push_local index do
 end
 
 func out_pop_local index do
-
-	# reduce final .asm size by using a existing function
-	index local_inlined_max < if
-		"call popl_" out_asm index out_asm_number "\n" out_asm
-		ret
-	end
-
 	print_comments_enabled if ";; pop local variable\n" out_asm  end
 	"call pop_rax\n" out_asm
 	"mov rbx, [rel lsp]\n" out_asm

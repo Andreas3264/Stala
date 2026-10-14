@@ -29,10 +29,6 @@ func print_comments_enabled do false end
 
 func bytes_per_register do 8 end
 
-#
-# TOKEN PARSER
-#
-
 func out_asm str do
 	print_output_enabled if str print end
 
@@ -47,36 +43,34 @@ func out_asm_number val do
 	number_buffer out_asm
 end
 
-func out_reg_push reg do
-	"mov [rbp], " out_asm reg out_asm "\n" out_asm
-	"add rbp, " out_asm bytes_per_register out_asm_number "\n" out_asm
-end
-
-func out_reg_pop reg do
-	"sub rbp, " out_asm bytes_per_register out_asm_number "\n" out_asm
-	"mov " out_asm reg out_asm ", [rbp]\n" out_asm
-end
-
 func out_section_code main_function_index do
 	"global _main\n" out_asm
 	"section .text\n" out_asm
 	"\n" out_asm
 
 	"_main:\n" out_asm
-	"mov [rel org_rsp], rsp\n" out_asm
-	"mov [rel org_rbp], rbp\n" out_asm
-
 	"lea rax, [rel mem]\n" out_asm
 	"mov [rel mem_ptr], rax\n" out_asm
 
-	"lea rbp, [rel dat_stack]\n" out_asm
 
-	"lea rax, [rel loc_stack]\n" out_asm
-	"mov [rel loc_stack_ptr], rax\n" out_asm
+	"lea rax, [rel data_stack]\n" out_asm
+	"mov [rel dsp], rax\n" out_asm
+	"mov rbp, [rel dsp]\n" out_asm
 
-	"rdx" out_reg_push
-	"rdi" out_reg_push
-	"rsi" out_reg_push
+	"lea rax, [rel local_stack]\n" out_asm
+	"mov [rel lsp], rax\n" out_asm
+
+	# ENVP
+	"mov rax, rdx\n" out_asm
+	"call push_rax\n" out_asm
+
+	# ARGC
+	"mov rax, rdi\n" out_asm
+	"call push_rax\n" out_asm
+
+	# ARGV
+	"mov rax, rsi\n" out_asm
+	"call push_rax\n" out_asm
 
 	main_function_index out_call_function
 
@@ -97,19 +91,18 @@ func out_section_end do
 	"\n" out_asm
 	"section .bss\n" out_asm
 	";; some global vars\n" out_asm
-	"org_rsp: resq 1\n" out_asm
-	"org_rbp: resq 1\n" out_asm
 	"\n" out_asm
 
 	";; stack for local variables\n" out_asm
-	"loc_stack_ptr: resq 1\n" out_asm
-	"loc_stack: resq 65536\n" out_asm
-	"loc_stack_end:\n" out_asm
+	"lsp: resq 1\n" out_asm
+	"local_stack: resq 65536\n" out_asm
+	"local_stack_end:\n" out_asm
 	"\n" out_asm
 
 	";; stack for data elements\n" out_asm
-	"dat_stack: resq 65536\n" out_asm
-	"dat_stack_end:\n" out_asm
+	"dsp: resq 1\n" out_asm
+	"data_stack: resq 65536\n" out_asm
+	"data_stack_end:\n" out_asm
 	"\n" out_asm
 
 	";; memory region\n" out_asm
@@ -126,42 +119,42 @@ end
 
 func out_pop_local index do
 	print_comments_enabled if ";; pop local variable\n" out_asm  end
-	"rax" out_reg_pop
-	"mov rbx, [rel loc_stack_ptr]\n" out_asm
+	"call pop_rax\n" out_asm
+	"mov rbx, [rel lsp]\n" out_asm
 	"mov [rbx + " out_asm index bytes_per_register * out_asm_number "], rax\n" out_asm
 end
 
 func out_push_local index do
 	print_comments_enabled if ";; push local variable\n" out_asm  end
-	"mov rbx, [rel loc_stack_ptr]\n" out_asm
+	"mov rbx, [rel lsp]\n" out_asm
 	"mov rax, [rbx + " out_asm index bytes_per_register * out_asm_number "]\n" out_asm
-	"rax" out_reg_push
+	"call push_rax\n" out_asm
 end
 
 func out_inc_local value do
 	print_comments_enabled if ";; increment local pointer\n" out_asm  end
-	"mov rax, [rel loc_stack_ptr]\n" out_asm
+	"mov rax, [rel lsp]\n" out_asm
 	"add rax, " out_asm value bytes_per_register * out_asm_number "\n" out_asm
-	"mov [rel loc_stack_ptr], rax\n" out_asm
+	"mov [rel lsp], rax\n" out_asm
 end
 
 func out_dec_local value do
 	print_comments_enabled if ";; decrement local pointer\n" out_asm  end
-	"mov rax, [rel loc_stack_ptr]\n" out_asm
+	"mov rax, [rel lsp]\n" out_asm
 	"sub rax, " out_asm value bytes_per_register * out_asm_number "\n" out_asm
-	"mov [rel loc_stack_ptr], rax\n" out_asm
+	"mov [rel lsp], rax\n" out_asm
 end
 
 func out_push_value str do
 	print_comments_enabled if ";; push number\n" out_asm  end
 	"mov rax, " out_asm str out_asm "\n" out_asm
-	"rax" out_reg_push
+	"call push_rax\n" out_asm
 end
 
 func out_push_string string_index do
 	print_comments_enabled if ";; push number\n" out_asm end
 	"lea rax, [rel str_" out_asm string_index out_asm_number "]\n" out_asm
-	"rax" out_reg_push
+	"call push_rax\n" out_asm
 end
 
 func out_define_string string_index string do
@@ -184,60 +177,93 @@ func out_return do
 	"ret\n" out_asm
 end
 
-func out_if block do
-	"rax" out_reg_pop
+func out_label label do
+	print_comments_enabled if ";; label\n" out_asm end
+	label out_asm ":\n" out_asm
+end
+
+func out_jump label do
+	print_comments_enabled if ";; jump\n" out_asm end
+	"jmp " out_asm label out_asm "\n" out_asm
+end
+
+func out_jump_zero label do
+	print_comments_enabled if ";; jump zero\n" out_asm end
+	"call pop_rax\n" out_asm
 	"test rax, rax\n" out_asm
-	"jz block_" out_asm
-	block block_get_block_index out_asm_number
-	"_" out_asm
-	block block_get_block_sub_index ++ out_asm_number
-	"\n" out_asm
+	"jz " out_asm label out_asm "\n" out_asm
+end
+
+
+
+
+func tmp_label_string do
+	"01234567 01234567 01234567 01234567 01234567 01234567 01234567 01234567"
+end
+
+func out_if block do
+	tmp_label_string let label
+	label "block_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label "_" strcat
+	label label strlen + block block_get_block_sub_index ++ 10 int_to_str
+	label out_jump_zero
 end
 
 func out_else block do
-	"jmp end_" out_asm
-	block block_get_block_index out_asm_number
-	"\n" out_asm
-	"block_" out_asm
-	block block_get_block_index out_asm_number
-	"_" out_asm
-	block block_get_block_sub_index out_asm_number
-	":\n" out_asm
+	tmp_label_string let label
+	label "end_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_jump
+
+	label "block_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label "_" strcat
+	label label strlen + block block_get_block_sub_index 10 int_to_str
+	label out_label
 end
 
 func out_end_if block do
-	"block_" out_asm
-	block block_get_block_index out_asm_number
-	"_" out_asm
-	block block_get_block_sub_index out_asm_number
-	":\n" out_asm
-	"end_" out_asm
-	block block_get_block_index out_asm_number
-	":\n" out_asm
+	tmp_label_string let label
+	label "block_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label "_" strcat
+	label label strlen + block block_get_block_sub_index 10 int_to_str
+	label out_label
+
+	label "end_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_label
 end
 
 func out_while block do
-	"while_" out_asm
-	block block_get_block_index out_asm_number
-	":\n" out_asm
+	tmp_label_string let label
+	label "while_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_label
 end
 
 func out_while_do block do
-	"rax" out_reg_pop
-	"test rax, rax\n" out_asm
-	"jz end_" out_asm
-	block block_get_block_index out_asm_number
-	"\n" out_asm
+	tmp_label_string let label
+	label "end_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_jump_zero
 end
 
 func out_end_while block do
-	"jmp while_" out_asm
-	block block_get_block_index out_asm_number
-	"\n" out_asm
-	"end_" out_asm
-	block block_get_block_index out_asm_number
-	":\n" out_asm
+	tmp_label_string let label
+	label "while_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_jump
+
+	label "end_" strcpy
+	label label strlen + block block_get_block_index 10 int_to_str
+	label out_label
 end
+
+#
+# BLOCKS AND BLOCK TYPES
+#
 
 func new_block do 4 new_array end
 func block_get_block_index block             do block 0             array_get_index end
@@ -255,12 +281,20 @@ func block_type_if       do "if" end
 func block_type_elif     do "elif" end
 func block_type_else     do "else" end
 
+#
+# TOKENIZER STATUS
+#
+
 func status_tokenize_spacers do 1 end
 func status_tokenize_token do 2 end
 func status_tokenize_string do 3 end
 func status_tokenize_escaped do 4 end
 func status_tokenize_comment do 5 end
 func status_tokenize_number do 6 end
+
+#
+# PARSER STATUS
+#
 
 func status_parse_source do 1001 end
 func status_parse_function_name do 1002 end
@@ -270,6 +304,9 @@ func status_parse_after_asm do 1005 end
 func status_parse_after_let do 1006 end
 func status_parse_include do 1007 end
 
+#
+# TOKEN PARSER
+#
 
 func parse input_file do
 	
@@ -277,7 +314,7 @@ func parse input_file do
 	"0123456789" let number_chars
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+-*<=>(){}[]?!:/%" let token_first_chars
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*<=>(){}[]?!:/%" let token_chars
-	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*<=>(){}[]?!:/% #.:,;" let string_chars
+	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*<=>(){}[]?!:/% \n#.:,;" let string_chars
 	"nts\\\"" let escaped_chars
 	
 	1024 malloc let token_string
@@ -512,7 +549,7 @@ func parse input_file do
 			
 			token_is_identifier if
 				# the name of the function
-				token_string function_string strcpy
+				function_string token_string strcpy
 				function_list function_string list_force_get_index_of_string out_function_start
 				status_parse_function_args let parser_status
 			
@@ -691,7 +728,7 @@ func parse input_file do
 				#string
 				string_list list_get_size let string_index
 				token_string strlen ++ malloc let tmp_string
-				token_string tmp_string strcpy
+				tmp_string token_string strcpy
 				string_list tmp_string list_add
 				string_index out_push_string
 			

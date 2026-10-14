@@ -106,7 +106,7 @@ end
 func list_force_get_index_of_string list string do
 	list string list_get_index_of_string -1 = if
 		string strlen ++ malloc let tmp_string
-		string tmp_string strcpy
+		tmp_string string strcpy
 		list tmp_string list_add
 	end
 	list string list_get_index_of_string

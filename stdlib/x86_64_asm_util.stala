@@ -1,0 +1,235 @@
+# x86 64 utility
+
+func UTIL_DO_NOT_CALL do
+	ret
+
+asm ";; start of utility functions\n"
+
+asm "
+;; push rax to the data stack
+push_rax:
+push rbx
+mov rbx, [rel dsp]
+mov [rbx], rax
+add rbx, 8
+mov [rel dsp], rbx
+pop rbx
+ret
+"
+
+asm "
+;; pop rax from the data stack
+pop_rax:
+push rbx
+mov rbx, [rel dsp]
+sub rbx, 8
+mov rax, [rbx]
+mov [rel dsp], rbx
+pop rbx
+ret
+"
+
+asm "
+;; push rbx to the data stack
+push_rbx:
+push rax
+mov rax, [rel dsp]
+mov [rax], rbx
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop rbx from the data stack
+pop_rbx:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov rbx, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push rcx to the data stack
+push_rcx:
+push rax
+mov rax, [rel dsp]
+mov [rax], rcx
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop rcx from the data stack
+pop_rcx:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov rcx, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push rdx to the data stack
+push_rdx:
+push rax
+mov rax, [rel dsp]
+mov [rax], rdx
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop rdx from the data stack
+pop_rdx:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov rdx, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push rdi to the data stack
+push_rdi:
+push rax
+mov rax, [rel dsp]
+mov [rax], rdi
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop rdi from the data stack
+pop_rdi:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov rdi, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push rsi to the data stack
+push_rsi:
+push rax
+mov rax, [rel dsp]
+mov [rax], rsi
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop rsi from the data stack
+pop_rsi:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov rsi, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push r10 to the data stack
+push_r10:
+push rax
+mov rax, [rel dsp]
+mov [rax], r10
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop r10 from the data stack
+pop_r10:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov r10, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push r9 to the data stack
+push_r9:
+push rax
+mov rax, [rel dsp]
+mov [rax], r9
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop r9 from the data stack
+pop_r9:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov r9, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push r8 to the data stack
+push_r8:
+push rax
+mov rax, [rel dsp]
+mov [rax], r8
+add rax, 8
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; pop r8 from the data stack
+pop_r8:
+push rax
+mov rax, [rel dsp]
+sub rax, 8
+mov r8, [rax]
+mov [rel dsp], rax
+pop rax
+ret
+"
+
+asm "
+;; push local variable with index 0 
+pushl_0:
+mov rbx, [rel lsp]
+mov rax, [rbx + 0]
+call push_rax
+ret
+"
+
+asm ";; end of utility functions"
+
+end

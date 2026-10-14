@@ -1,5 +1,5 @@
 
-func strcpy src dst do
+func strcpy dst src do
 	while true do
 		src ?8 let ch
 		dst ch !8
@@ -11,7 +11,7 @@ end
 
 func strcat dst src do
 	dst dst strlen + let dst
-	src dst strcpy
+	dst src strcpy
 end
 
 func strcatchr dst char do
