@@ -1,0 +1,178 @@
+
+#
+# TOKENIZER STATUS
+#
+
+func status_tokenize_spacers do 1 end
+func status_tokenize_token   do 2 end
+func status_tokenize_string  do 3 end
+func status_tokenize_escaped do 4 end
+func status_tokenize_comment do 5 end
+func status_tokenize_number  do 6 end
+
+func spacers do "\s\t\n" end
+func number_chars do "0123456789" end
+func token_first_chars do "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+-*<=>(){}[]?!:/%" end
+func token_chars do "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*<=>(){}[]?!:/%" end
+func escaped_chars do "nts\\\"" end
+
+func new_tokenizer do
+	
+end
+
+#
+# returns token_is_string token_is_identifier token_is_number
+#
+func tokenizer_tokenize token_string input_file do
+
+		token_string 0 !8
+		status_tokenize_spacers let lexer_status
+		false let token_is_string
+		false let token_is_identifier
+		false let token_is_number
+		
+		#build token
+		true let lexing_token
+		while lexing_token do
+		
+			input_file file_read_char let char
+			char "\n" ?8 = if
+				report_newline
+			end
+
+			lexer_status status_tokenize_spacers = if
+
+				spacers char strchr null != if
+					# do nothing
+					status_tokenize_spacers let lexer_status
+				
+				else char "\"" ?8 = elif
+					# begining of string
+					true let token_is_string
+					token_string char strcatchr
+					status_tokenize_string let lexer_status
+				
+				else token_first_chars char strchr null != elif
+					# begining of token
+					true let token_is_identifier
+					token_string char strcatchr
+					status_tokenize_token let lexer_status
+					
+				else number_chars char strchr null != elif
+					# number
+					true let token_is_number
+					token_string char strcatchr
+					status_tokenize_token let lexer_status
+					
+				#else char "-" ?8 = elif #TODO improve
+				#	# negative number
+				#	true let token_is_number
+				#	token_string char strcatchr
+				#	status_tokenize_token let lexer_status
+				#
+				#else char "+" ?8 = elif
+				#	# positive number
+				#	true let token_is_number
+				#	token_string char strcatchr
+				#	status_tokenize_token let lexer_status
+				#
+				else char "#" ?8 = elif
+					# begining of comment
+					status_tokenize_comment let lexer_status
+			
+				else char EOF = elif
+					# end of file reached
+					false let lexing_token
+					
+				else
+					"invalid character: " error
+					"?\n" dup char !8  error
+					reporter_report error fail
+					
+				end
+		
+			else lexer_status status_tokenize_token = elif
+		
+				spacers char strchr null != if
+					# end of token reached
+					false let lexing_token
+					
+				else token_chars char strchr null != elif
+					# continue token
+					token_string char strcatchr
+					status_tokenize_token let lexer_status
+				
+				else char EOF = elif
+					# end of file reached
+					false let lexing_token
+					
+				else
+					"invalid character in token: " error
+					"?\n" dup char !8  error
+					reporter_report error fail
+					
+				end
+			
+			else lexer_status status_tokenize_string = elif
+				
+				char "\\" ?8 = if
+					# escaped character
+					token_string char strcatchr
+					status_tokenize_escaped let lexer_status
+			
+				else char "\"" ?8 = elif
+					# end of string
+					token_string char strcatchr
+					false let lexing_token
+				
+				else char EOF = elif
+					# end of file reached
+					"invalid EOF in string\n" error
+					reporter_report error fail
+				else
+					# continue string
+					token_string char strcatchr
+					status_tokenize_string let lexer_status
+					
+				end
+			
+			else lexer_status status_tokenize_escaped = elif
+		
+				escaped_chars char strchr null != if
+					# continue string
+					token_string char strcatchr
+					status_tokenize_string let lexer_status
+				
+				else
+					"invalid character escaped character: " error
+					"?\n" dup char !8 error
+					reporter_report error fail
+					
+				end
+			
+			else lexer_status status_tokenize_comment = elif
+			
+				char "\n" ?8 = if
+					# end of comment
+					status_tokenize_spacers let lexer_status
+				
+				else char EOF = elif
+					# end of file reached
+					false let lexing_token
+				
+				else
+					# character in comment
+				end
+			
+			else
+				"unimplementad lexer status\n" error fail
+				 
+			end
+		
+		end
+
+	token_is_string
+	token_is_identifier
+	token_is_number
+	ret
+end

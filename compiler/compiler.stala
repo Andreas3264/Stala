@@ -1,4 +1,6 @@
 include "stdlib/stdlib.stala"
+include "compiler/tokenizer.stala"
+
 
 func main args do
 
@@ -23,6 +25,8 @@ func main args do
 	input_file parse
 
 	out_file close_file
+
+	"Memory use: " print get_memory_use print_int "\n" print
 end
 
 func output_file do "01234567" end
@@ -162,17 +166,6 @@ func block_type_elif     do "elif" end
 func block_type_else     do "else" end
 
 #
-# TOKENIZER STATUS
-#
-
-func status_tokenize_spacers do 1 end
-func status_tokenize_token   do 2 end
-func status_tokenize_string  do 3 end
-func status_tokenize_escaped do 4 end
-func status_tokenize_comment do 5 end
-func status_tokenize_number  do 6 end
-
-#
 # PARSER STATUS
 #
 
@@ -189,12 +182,6 @@ func status_parse_include       do 1007 end
 #
 
 func parse input_file do
-	
-	"\s\t\n" let spacers
-	"0123456789" let number_chars
-	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_+-*<=>(){}[]?!:/%" let token_first_chars
-	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_+-*<=>(){}[]?!:/%" let token_chars
-	"nts\\\"" let escaped_chars
 	
 	1024 malloc let token_string
 	1024 malloc let function_string
@@ -218,151 +205,7 @@ func parse input_file do
 	true let parsing_tokens
 	while parsing_tokens do
 	
-		token_string 0 !8
-		status_tokenize_spacers let lexer_status
-		false let token_is_string
-		false let token_is_identifier
-		false let token_is_number
-		
-		#build token
-		true let lexing_token
-		while lexing_token do
-		
-			input_file file_read_char let char
-			char "\n" ?8 = if
-				report_newline
-			end
-
-			lexer_status status_tokenize_spacers = if
-
-				spacers char strchr null != if
-					# do nothing
-					status_tokenize_spacers let lexer_status
-				
-				else char "\"" ?8 = elif
-					# begining of string
-					true let token_is_string
-					token_string char strcatchr
-					status_tokenize_string let lexer_status
-				
-				else token_first_chars char strchr null != elif
-					# begining of token
-					true let token_is_identifier
-					token_string char strcatchr
-					status_tokenize_token let lexer_status
-					
-				else number_chars char strchr null != elif
-					# number
-					true let token_is_number
-					token_string char strcatchr
-					status_tokenize_token let lexer_status
-					
-				#else char "-" ?8 = elif #TODO improve
-				#	# negative number
-				#	true let token_is_number
-				#	token_string char strcatchr
-				#	status_tokenize_token let lexer_status
-				#
-				#else char "+" ?8 = elif
-				#	# positive number
-				#	true let token_is_number
-				#	token_string char strcatchr
-				#	status_tokenize_token let lexer_status
-				#
-				else char "#" ?8 = elif
-					# begining of comment
-					status_tokenize_comment let lexer_status
-			
-				else char EOF = elif
-					# end of file reached
-					false let lexing_token
-					
-				else
-					"invalid character: " error
-					"?\n" dup char !8  error
-					reporter_report error fail
-					
-				end
-		
-			else lexer_status status_tokenize_token = elif
-		
-				spacers char strchr null != if
-					# end of token reached
-					false let lexing_token
-					
-				else token_chars char strchr null != elif
-					# continue token
-					token_string char strcatchr
-					status_tokenize_token let lexer_status
-				
-				else char EOF = elif
-					# end of file reached
-					false let lexing_token
-					
-				else
-					"invalid character in token: " error
-					"?\n" dup char !8  error
-					reporter_report error fail
-					
-				end
-			
-			else lexer_status status_tokenize_string = elif
-				
-				char "\\" ?8 = if
-					# escaped character
-					token_string char strcatchr
-					status_tokenize_escaped let lexer_status
-			
-				else char "\"" ?8 = elif
-					# end of string
-					token_string char strcatchr
-					false let lexing_token
-				
-				else char EOF = elif
-					# end of file reached
-					"invalid EOF in string\n" error
-					reporter_report error fail
-				else
-					# continue string
-					token_string char strcatchr
-					status_tokenize_string let lexer_status
-					
-				end
-			
-			else lexer_status status_tokenize_escaped = elif
-		
-				escaped_chars char strchr null != if
-					# continue string
-					token_string char strcatchr
-					status_tokenize_string let lexer_status
-				
-				else
-					"invalid character escaped character: " error
-					"?\n" dup char !8 error
-					reporter_report error fail
-					
-				end
-			
-			else lexer_status status_tokenize_comment = elif
-			
-				char "\n" ?8 = if
-					# end of comment
-					status_tokenize_spacers let lexer_status
-				
-				else char EOF = elif
-					# end of file reached
-					false let lexing_token
-				
-				else
-					# character in comment
-				end
-			
-			else
-				"unimplementad lexer status\n" error fail
-				 
-			end
-		
-		end
+		token_string input_file tokenizer_tokenize let token_is_number let token_is_identifier let token_is_string
 		
 		# identify token
 		parser_status status_parse_source = if
