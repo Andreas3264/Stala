@@ -1,0 +1,23 @@
+func new_string_list do
+	new_list
+end
+
+func string_list_get_index_of_string string_list string do
+	0 let i
+	while string_list list_get_size i != do
+		string_list i list_get_index string streq if
+			i ret
+		end
+		i ++ let i
+	end
+	-1
+end
+
+func string_list_force_get_index_of_string string_list string do
+	string_list string string_list_get_index_of_string -1 = if
+		string strlen ++ malloc let tmp_string
+		tmp_string string strcpy
+		string_list tmp_string list_add
+	end
+	string_list string string_list_get_index_of_string
+end

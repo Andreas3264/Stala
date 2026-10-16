@@ -1,39 +1,3 @@
-# collections
-
-#
-# ARRAY
-#
-
-func new_array size do
-	size ++ sizeof(ptr) * malloc let array
-	array size !ptr
-	array
-end
-
-func array_get_size arr do
-	arr ?ptr
-end
-
-func array_get_index arr index do
-	arr array_get_size let size
-	index size >= if "array index out ouf bounds" error fail end
-	index 0 < if "array index out ouf bounds" error fail end
-	arr index ++ sizeof(ptr) * + ?ptr
-end
-
-func array_set_index arr index value do
-	arr array_get_size let size
-	index size >= if "array index out ouf bounds" error fail end
-	index 0 < if "array index out ouf bounds" error fail end
-	arr index ++ sizeof(ptr) * + value !ptr
-end
-
-#
-# LIST
-#
-# [size, ptr]
-#
-
 func new_list do
 	2 let size 				# default list size
 	2 new_array let list			# size of list struct
@@ -118,24 +82,4 @@ func list_reverse list do
 		tmp_ptr1 ++ let tmp_ptr1
 		tmp_ptr2 -- let tmp_ptr2
 	end
-end
-
-func list_get_index_of_string list string do
-	0 let i
-	while list list_get_size i != do
-		list i list_get_index string streq if
-			i ret
-		end
-		i ++ let i
-	end
-	-1
-end
-
-func list_force_get_index_of_string list string do
-	list string list_get_index_of_string -1 = if
-		string strlen ++ malloc let tmp_string
-		tmp_string string strcpy
-		list tmp_string list_add
-	end
-	list string list_get_index_of_string
 end

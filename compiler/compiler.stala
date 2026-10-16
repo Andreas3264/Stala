@@ -210,7 +210,7 @@ func parse input_file do
 	new_list let declared_functions_list
 	new_list let locals_list
 	
-	function_list "main" list_force_get_index_of_string out_section_code
+	function_list "main" string_list_force_get_index_of_string out_section_code
 
 	status_parse_source let parser_status
 	
@@ -414,7 +414,7 @@ func parse input_file do
 				tmp_buffer strdup let include_string
 
 				# check that this source has not yet been included
-				all_include_list include_string list_get_index_of_string -1 = if
+				all_include_list include_string string_list_get_index_of_string -1 = if
 					all_include_list include_string list_push
 					to_include_list include_string list_push
 				else
@@ -442,13 +442,13 @@ func parse input_file do
 				function_string token_string strcpy
 				function_string report_begin_function
 
-				declared_functions_list function_string list_get_index_of_string -1 != if
+				declared_functions_list function_string string_list_get_index_of_string -1 != if
 					"multiple declarations of function: " error function_string error "\n" error
 					reporter_report error fail
 				end
 
 				declared_functions_list function_string strdup list_add
-				function_list function_string list_force_get_index_of_string out_function_start
+				function_list function_string string_list_force_get_index_of_string out_function_start
 				status_parse_function_args let parser_status
 			
 			else token_string strlen 0 = elif
@@ -474,7 +474,7 @@ func parse input_file do
 				# function argument identifier
 				
 				# add local variable to list
-				locals_list token_string list_force_get_index_of_string out_pop_local
+				locals_list token_string string_list_force_get_index_of_string out_pop_local
 				status_parse_function_args let parser_status
 			
 			else token_string strlen 0 = elif
@@ -561,7 +561,7 @@ func parse input_file do
 					# end of function
 					report_end_function
 					status_parse_source let parser_status
-					function_list function_string list_force_get_index_of_string out_function_end
+					function_list function_string string_list_force_get_index_of_string out_function_end
 					
 				else
 					block_stack list_pop let nblock
@@ -583,7 +583,7 @@ func parse input_file do
 				end
 		
 			else token_string "ret" streq elif
-				function_list function_string list_force_get_index_of_string out_return
+				function_list function_string string_list_force_get_index_of_string out_return
 		
 			else token_string "let" streq elif
 				status_parse_after_let let parser_status
@@ -604,7 +604,7 @@ func parse input_file do
 			else token_is_identifier elif 
 				# identifier is a local variable or function call
 
-				locals_list token_string list_get_index_of_string let local_index
+				locals_list token_string string_list_get_index_of_string let local_index
 				local_index -1 != if
 					# identifier is a local variable
 					local_index out_push_local
@@ -612,7 +612,7 @@ func parse input_file do
 				else
 					# identifier is a function
 					locals_list list_get_size out_inc_local
-					function_list token_string list_force_get_index_of_string out_call_function
+					function_list token_string string_list_force_get_index_of_string out_call_function
 					locals_list list_get_size out_dec_local
 				end
 				
@@ -657,7 +657,7 @@ func parse input_file do
 			
 			token_is_identifier if
 				# local variable identifier
-				locals_list token_string list_force_get_index_of_string out_pop_local
+				locals_list token_string string_list_force_get_index_of_string out_pop_local
 				status_parse_function_body let parser_status
 				
 			else token_string strlen 0 = elif
@@ -682,7 +682,7 @@ func parse input_file do
 	0 let i
 	while i function_list list_get_size != do
 		function_list i list_get_index let function_to_check
-		declared_functions_list function_to_check list_get_index_of_string -1 = if
+		declared_functions_list function_to_check string_list_get_index_of_string -1 = if
 			"undefined function: " error function_to_check error "\n" error
 			reporter_report error fail
 		end

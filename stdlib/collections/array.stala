@@ -1,0 +1,23 @@
+func new_array size do
+	size ++ sizeof(ptr) * malloc let array
+	array size !ptr
+	array
+end
+
+func array_get_size arr do
+	arr ?ptr
+end
+
+func array_get_index arr index do
+	arr array_get_size let size
+	index size >= if "array index out ouf bounds" error fail end
+	index 0 < if "array index out ouf bounds" error fail end
+	arr index ++ sizeof(ptr) * + ?ptr
+end
+
+func array_set_index arr index value do
+	arr array_get_size let size
+	index size >= if "array index out ouf bounds" error fail end
+	index 0 < if "array index out ouf bounds" error fail end
+	arr index ++ sizeof(ptr) * + value !ptr
+end

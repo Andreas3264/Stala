@@ -1,0 +1,3 @@
+include "stdlib/collections/array.stala"
+include "stdlib/collections/list.stala"
+include "stdlib/collections/string_list.stala"
