@@ -1,0 +1,17 @@
+
+func token_type_string do "type:string" end
+func token_type_identifier do "type:identifier" end
+func token_type_number do "type:number" end
+
+
+func new_token do
+	2 new_array let token
+	token "" token_set_text
+	token ret
+end
+
+func token_get_text token	 do token 0 array_get_index end
+func token_set_text token text do token 0 text array_set_index end
+
+func token_get_type token	 do token 1 array_get_index end
+func token_set_type token type do token 1 type array_set_index end

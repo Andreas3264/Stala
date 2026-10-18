@@ -1,6 +1,7 @@
 include "stdlib/stdlib.stala"
 include "compiler/tokenizer.stala"
-
+include "compiler/token.stala"
+include "compiler/parser.stala"
 
 func main args do
 
@@ -145,383 +146,24 @@ func report_end_function do 1 "" reporter_set_index end
 
 func report_newline do 2 2 reporter_get_index ++ reporter_set_index end
 
-#
-# BLOCKS AND BLOCK TYPES
-#
-
-func new_block do 4 new_array end
-func block_get_block_index block             do block 0             array_get_index end
-func block_set_block_index block block_index do block 0 block_index array_set_index end
-
-func block_get_block_sub_index block                 do block 1                 array_get_index end
-func block_set_block_sub_index block block_sub_index do block 1 block_sub_index array_set_index end
-
-func block_get_block_type block            do block 2            array_get_index end
-func block_set_block_type block block_type do block 2 block_type array_set_index end
-
-func block_type_while    do "while" end
-func block_type_while_do do "while do" end
-func block_type_if       do "if" end
-func block_type_elif     do "elif" end
-func block_type_else     do "else" end
-
-#
-# PARSER STATUS
-#
-
-func status_parse_source        do 1001 end
-func status_parse_function_name do 1002 end
-func status_parse_function_args do 1003 end
-func status_parse_function_body do 1004 end
-func status_parse_after_asm     do 1005 end
-func status_parse_after_let     do 1006 end
-func status_parse_include       do 1007 end
-
-#
-# TOKEN PARSER
-#
 
 func parse input_file do
 	
-	1024 malloc let token_string
-	1024 malloc let function_string
-	1024 malloc let tmp_buffer
+	new_tokenizer let tokenizer
+	new_parser let parser
 
-	new_list let block_stack
-	0 let block_index 
-	
-	new_list let all_include_list
-	new_list let to_include_list
-	new_list let string_list
-	new_list let function_list
-	new_list let declared_functions_list
-	new_list let locals_list
-	
-	function_list "main" string_list_force_get_index_of_string out_section_code
+	parser parser_get_function_list "main" string_list_force_get_index_of_string out_section_code
 
-	status_parse_source let parser_status
-	
 	# main token loop
 	true let parsing_tokens
-	while parsing_tokens do
-	
-		token_string input_file tokenizer_tokenize let token_is_number let token_is_identifier let token_is_string
-		
-		# identify token
-		parser_status status_parse_source = if
-			
-			token_string "func" streq if
-				locals_list list_clear
-				status_parse_function_name let parser_status
-			
-			else token_string "include" streq elif
-				status_parse_include let parser_status
-				
-			else token_string strlen 0 = elif
-				# end of tokens
-				to_include_list list_get_size 0 != if
-					# more included files to parse
-					to_include_list list_pop let include_string
-					
-					input_file close_file
-					include_string try_open_file let input_file
-
-					# TODO: debug information output
-					#"opening file: " print include_string print " fd: " print input_file print_int "\n" print
-
-					input_file -1 = if
-						#TODO:incorrect source file of "include" may be reported here
-						"unable to find file: " error
-						include_string error "\n" error
-						reporter_report error fail
-					end
-					include_string report_begin_source
-				else
-					# no more files to include, stop parsing
-					input_file close_file
-					false let parsing_tokens
-				end
-				
-			else
-				"unexpected token in source: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-		
-		else parser_status status_parse_include = elif
-			
-			token_is_string if
-				# get file name from string
-				tmp_buffer token_string str_unescape
-				tmp_buffer strdup let include_string
-
-				# check that this source has not yet been included
-				all_include_list include_string string_list_get_index_of_string -1 = if
-					all_include_list include_string list_push
-					to_include_list include_string list_push
-				else
-					"multiple include for the same source: " error include_string error "\n" error
-					reporter_report error fail
-				end
-				
-				status_parse_source let parser_status
-			
-			else token_string strlen 0 = elif
-				"unexpected end of tokens after include\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token after include: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-		
-		else parser_status status_parse_function_name = elif
-			
-			token_is_identifier if
-				# the name of the function
-				function_string token_string strcpy
-				function_string report_begin_function
-
-				declared_functions_list function_string string_list_get_index_of_string -1 != if
-					"multiple declarations of function: " error function_string error "\n" error
-					reporter_report error fail
-				end
-
-				declared_functions_list function_string strdup list_add
-				function_list function_string string_list_force_get_index_of_string out_function_start
-				status_parse_function_args let parser_status
-			
-			else token_string strlen 0 = elif
-				"unexpected end of tokens after func\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token after func: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-			
-		else parser_status status_parse_function_args = elif
-			
-			token_string "do" streq if
-				# end of function argument declaration
-				# reverse order of arguments
-				locals_list list_reverse
-				status_parse_function_body let parser_status
-				
-			else token_is_identifier elif
-				# function argument identifier
-				
-				# add local variable to list
-				locals_list token_string string_list_force_get_index_of_string out_pop_local
-				status_parse_function_args let parser_status
-			
-			else token_string strlen 0 = elif
-				"unexpected end of tokens in function arguments\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token in function argument: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-			
-		else parser_status status_parse_function_body = elif
-			
-			token_string "while" streq if
-				new_block let nblock
-				nblock block_index block_set_block_index
-				block_index ++ let block_index
-				nblock 0 block_set_block_sub_index
-				nblock block_type_while block_set_block_type
-				block_stack nblock list_push
-				nblock out_while
-			
-			else token_string "do" streq elif
-
-				# check if this is a while - if
-				block_stack list_get_size 0 != if
-					block_stack list_peek let nblock
-					nblock block_get_block_type block_type_while = if
-						nblock block_type_while_do block_set_block_type
-						nblock out_while_do
-					end
-				end
-	
-			else token_string "if" streq elif
-
-				new_block let nblock
-				nblock block_index block_set_block_index
-				block_index ++ let block_index
-				nblock 0 block_set_block_sub_index
-				nblock block_type_if block_set_block_type
-				block_stack nblock list_push
-				nblock out_if
-		
-			else token_string "elif" streq elif
-
-				block_stack list_get_size 0 = if
-					"elif can not be the start of a block\n" error
-					reporter_report error fail
-				end
-				block_stack list_peek let nblock
-				
-				nblock block_get_block_type block_type_else != if
-					"elif can only come after else\n" error
-					reporter_report error fail
-				end
-				
-				nblock nblock block_get_block_sub_index ++ block_set_block_sub_index
-				nblock block_type_elif block_set_block_type
-				nblock out_if
-		
-			else token_string "else" streq elif
-
-				block_stack list_get_size 0 = if
-					"else can not be the start of a block\n" error
-					reporter_report error fail
-				end
-				block_stack list_peek let nblock
-				
-				nblock block_get_block_type block_type_if != 
-				nblock block_get_block_type block_type_elif != AND if
-					"else can only come after if or elif, not: " error nblock block_get_block_type error "\n" error
-					reporter_report error fail
-				end
-				
-				nblock nblock block_get_block_sub_index ++ block_set_block_sub_index
-				nblock block_type_else block_set_block_type
-				nblock out_else
-		
-			else token_string "end" streq elif
-				
-				block_stack list_get_size 0 = if
-					# end of function
-					report_end_function
-					status_parse_source let parser_status
-					function_list function_string string_list_force_get_index_of_string out_function_end
-					
-				else
-					block_stack list_pop let nblock
-					
-					nblock block_get_block_type block_type_while_do = if
-						nblock out_end_while
-						
-					else nblock block_get_block_type block_type_if = 
-					     nblock block_get_block_type block_type_elif = OR
-					     nblock block_get_block_type block_type_else = OR elif
-					     	nblock nblock block_get_block_sub_index ++ block_set_block_sub_index
-						nblock out_end_if
-						
-					else
-						"invalid block type before end: " error nblock block_get_block_type error "\n" error
-						reporter_report error fail
-					end
-				
-				end
-		
-			else token_string "ret" streq elif
-				function_list function_string string_list_force_get_index_of_string out_return
-		
-			else token_string "let" streq elif
-				status_parse_after_let let parser_status
-		
-			else token_string "asm" streq elif
-				status_parse_after_asm let parser_status
-		
-			else token_is_number elif #TODO:improve
-				# number to push
-				# token_string 10 str_to_int out_push_value
-				token_string out_push_value
-				
-			else token_string "-1" streq elif #TODO:improve, quick fix for negative number -1
-				# number to push
-				# token_string 10 str_to_int out_push_value
-				token_string out_push_value
-			
-			else token_is_identifier elif 
-				# identifier is a local variable or function call
-
-				locals_list token_string string_list_get_index_of_string let local_index
-				local_index -1 != if
-					# identifier is a local variable
-					local_index out_push_local
-					
-				else
-					# identifier is a function
-					locals_list list_get_size out_inc_local
-					function_list token_string string_list_force_get_index_of_string out_call_function
-					locals_list list_get_size out_dec_local
-				end
-				
-			else token_is_string elif
-				# string
-				string_list list_get_size let string_index
-				string_list token_string strdup list_add
-				string_index out_push_string
-			
-			else token_string strlen 0 = elif
-				"unexpected end of tokens in function body\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token in function body: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-			
-		else parser_status status_parse_after_asm = elif
-			
-			token_is_string if
-				# output assembly
-				tmp_buffer token_string str_unescape
-				tmp_buffer "\n" strcat
-				tmp_buffer out_asm
-				status_parse_function_body let parser_status
-				
-			else token_string strlen 0 = elif
-				"unexpected end of tokens after asm\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token after asm: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-		
-		else parser_status status_parse_after_let = elif
-			
-			token_is_identifier if
-				# local variable identifier
-				locals_list token_string string_list_force_get_index_of_string out_pop_local
-				status_parse_function_body let parser_status
-				
-			else token_string strlen 0 = elif
-				"unexpected end of tokens after let\n" error
-				reporter_report error fail
-			
-			else
-				"unexpected token after let: " error
-				token_string error "\n" error
-				reporter_report error fail
-				
-			end
-		
-		else
-			"unimplemented parser status\n" error fail
-			
-		end
-		
+	while parser parser_get_is_parsing_tokens do
+		tokenizer input_file tokenizer_next_token let token
+		parser token input_file parser_parse_token let input_file
 	end
 	
 	# check that all referenced functions have been declared
+	parser parser_get_function_list let function_list
+	parser parser_get_declared_functions_list let declared_functions_list
 	0 let i
 	while i function_list list_get_size != do
 		function_list i list_get_index let function_to_check
@@ -534,7 +176,9 @@ func parse input_file do
 	
 	# strings
 	out_section_data
-
+	
+	1024 malloc let tmp_buffer
+	parser parser_get_string_list let string_list
 	0 let i
 	while string_list list_get_size i != do
 		tmp_buffer string_list i list_get_index str_unescape
