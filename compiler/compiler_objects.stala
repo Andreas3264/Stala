@@ -1,0 +1,57 @@
+func new_program do
+	3 new_array let program
+	program new_list program_set_source_list
+	program new_list program_set_function_list
+	program null program_set_main_function
+	program ret
+end
+
+func program_get_source_list program      do program 0      array_get_index end
+func program_set_source_list program list do program 0 list array_set_index end
+
+func program_get_function_list program      do program 1      array_get_index end
+func program_set_function_list program list do program 1 list array_set_index end
+
+func program_get_main_function program          do program 2          array_get_index end
+func program_set_main_function program function do program 2 function array_set_index end
+
+func new_source do
+	2 new_array let source
+	source "unnamed source" source_set_name
+	source new_list source_set_function_list
+	source ret
+end
+
+func source_get_name source      do source 0      array_get_index end
+func source_set_name source name do source 0 name array_set_index end
+func source_get_function_list source      do source 1      array_get_index end
+func source_set_function_list source list do source 1 list array_set_index end
+
+func new_function do
+	6 new_array let function
+	function "unnamed function" function_set_name
+	function new_list function_set_body
+	function 0 function_set_arg_c
+	function new_list function_set_local_list
+	function new_list function_set_string_list
+	function 999999 function_set_index
+	function ret
+end
+
+func function_get_name function      do function 0      array_get_index end
+func function_set_name function name do function 0 name array_set_index end
+
+func function_get_body function      do function 1      array_get_index end
+func function_set_body function body do function 1 body array_set_index end
+
+func function_get_arg_c function   do function 2   array_get_index end
+func function_set_arg_c function c do function 2 c array_set_index end
+
+func function_get_local_list function      do function 3      array_get_index end
+func function_set_local_list function list do function 3 list array_set_index end
+
+func function_get_string_list function      do function 4      array_get_index end
+func function_set_string_list function list do function 4 list array_set_index end
+
+func function_get_index function       do function 5       array_get_index end
+func function_set_index function index do function 5 index array_set_index end

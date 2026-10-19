@@ -2,6 +2,8 @@ include "stdlib/stdlib.stala"
 include "compiler/tokenizer.stala"
 include "compiler/token.stala"
 include "compiler/parser.stala"
+include "compiler/compiler_objects.stala"
+include "compiler/code_generator.stala"
 
 func main args do
 
@@ -23,7 +25,7 @@ func main args do
 	init_reporter
 	input_file_path report_begin_source
 
-	input_file parse
+	input_file input_file_path parser_parse_program
 
 	out_file close_file
 
@@ -50,63 +52,24 @@ func tmp_label_string do
 	"01234567 01234567 01234567 01234567 01234567 01234567 01234567 01234567"
 end
 
-func out_if block do
+func out_jump_zero_token token do
 	tmp_label_string let label
-	label "block_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label "_" strcat
-	label label strlen + block block_get_block_sub_index ++ 10 int_to_str
+	label "t_" strcpy
+	label label strlen + token token_get_guid 10 int_to_str
 	label out_jump_zero
 end
 
-func out_else block do
+func out_jump_token token do
 	tmp_label_string let label
-	label "end_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
+	label "t_" strcpy
+	label label strlen + token token_get_guid 10 int_to_str
 	label out_jump
-
-	label "block_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label "_" strcat
-	label label strlen + block block_get_block_sub_index 10 int_to_str
-	label out_label
 end
 
-func out_end_if block do
+func out_label_token token do
 	tmp_label_string let label
-	label "block_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label "_" strcat
-	label label strlen + block block_get_block_sub_index 10 int_to_str
-	label out_label
-
-	label "end_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label out_label
-end
-
-func out_while block do
-	tmp_label_string let label
-	label "while_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label out_label
-end
-
-func out_while_do block do
-	tmp_label_string let label
-	label "end_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label out_jump_zero
-end
-
-func out_end_while block do
-	tmp_label_string let label
-	label "while_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
-	label out_jump
-
-	label "end_" strcpy
-	label label strlen + block block_get_block_index 10 int_to_str
+	label "t_" strcpy
+	label label strlen + token token_get_guid 10 int_to_str
 	label out_label
 end
 
@@ -145,49 +108,6 @@ func report_begin_function function do 1 function reporter_set_index end
 func report_end_function do 1 "" reporter_set_index end
 
 func report_newline do 2 2 reporter_get_index ++ reporter_set_index end
-
-
-func parse input_file do
-	
-	new_tokenizer let tokenizer
-	new_parser let parser
-
-	parser parser_get_function_list "main" string_list_force_get_index_of_string out_section_code
-
-	# main token loop
-	true let parsing_tokens
-	while parser parser_get_is_parsing_tokens do
-		tokenizer input_file tokenizer_next_token let token
-		parser token input_file parser_parse_token let input_file
-	end
-	
-	# check that all referenced functions have been declared
-	parser parser_get_function_list let function_list
-	parser parser_get_declared_functions_list let declared_functions_list
-	0 let i
-	while i function_list list_get_size != do
-		function_list i list_get_index let function_to_check
-		declared_functions_list function_to_check string_list_get_index_of_string -1 = if
-			"undefined function: " error function_to_check error "\n" error
-			reporter_report error fail
-		end
-		i ++ let i
-	end
-	
-	# strings
-	out_section_data
-	
-	1024 malloc let tmp_buffer
-	parser parser_get_string_list let string_list
-	0 let i
-	while string_list list_get_size i != do
-		tmp_buffer string_list i list_get_index str_unescape
-		i tmp_buffer out_define_string
-		i ++ let i
-	end
-	out_section_end
-	
-end
 
 func str_unescape dst src do
 	# ignore first "

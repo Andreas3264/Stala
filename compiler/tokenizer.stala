@@ -31,9 +31,29 @@ func tokenizer_set_status tokenizer status do tokenizer 2 status array_set_index
 func tokenizer_get_is_lexing_token tokenizer do tokenizer 3 array_get_index end
 func tokenizer_set_is_lexing_token tokenizer is_lexing_token do tokenizer 3 is_lexing_token array_set_index end
 
-#
-# returns token
-#
+
+func tokenizer_tokenize input_file tokens do
+	
+	new_tokenizer let tokenizer
+	
+	
+	true let has_tokens
+	while has_tokens do
+		tokenizer input_file tokenizer_next_token let token
+		
+		token token_get_text strlen 0 != if
+			tokens token list_add
+		else
+			# do not add empty end of file token
+			#tokens token list_add
+			false let has_tokens
+		end
+	end
+	input_file close_file
+	tokens ret
+end
+
+
 func tokenizer_next_token tokenizer input_file do
 	tokenizer status_tokenize_spacers tokenizer_set_status
 	tokenizer new_token tokenizer_set_token
@@ -43,7 +63,8 @@ func tokenizer_next_token tokenizer input_file do
 	#build token
 	tokenizer true tokenizer_set_is_lexing_token
 	while tokenizer tokenizer_get_is_lexing_token do
-		tokenizer input_file tokenizer_next_char
+		input_file file_read_char let char
+		tokenizer char tokenizer_next_char
 	end
 
 	tokenizer tokenizer_get_token let token
@@ -51,14 +72,13 @@ func tokenizer_next_token tokenizer input_file do
 	token ret
 end
 
-func tokenizer_next_char tokenizer input_file do
+func tokenizer_next_char tokenizer char do
 
 	tokenizer tokenizer_get_token_buffer let token_string
 	tokenizer tokenizer_get_token let token
 	tokenizer tokenizer_get_status let lexer_status
 	tokenizer tokenizer_get_is_lexing_token let lexing_token
 
-	input_file file_read_char let char
 	char "\n" ?8 = if
 		report_newline
 	end

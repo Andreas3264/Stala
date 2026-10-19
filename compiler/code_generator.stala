@@ -1,0 +1,194 @@
+func code_gen program do
+
+	#TODO: check that main function is defined
+	program program_get_main_function function_get_index out_section_code
+
+	1024 malloc let tmp_buffer
+
+	program tmp_buffer function_code_gen
+
+	out_section_data
+
+	program tmp_buffer string_gen
+
+	out_section_end
+end
+
+#
+# Token generation
+#
+func function_code_gen program tmp_buffer do
+	program program_get_source_list let source_list
+	0 let i
+	while source_list list_get_size i != do
+		source_list i list_get_index let source
+		program source tmp_buffer function_code_gen_source
+		i ++ let i
+	end
+end
+
+func function_code_gen_source program source tmp_buffer do
+	source source_get_name report_begin_source
+
+	source source_get_function_list let function_list
+	0 let i
+	while function_list list_get_size i != do
+		function_list i list_get_index let function
+		program source function tmp_buffer function_code_gen_function
+		i ++ let i
+	end
+end
+
+func function_code_gen_function program source function tmp_buffer do
+	function function_get_name report_begin_function	
+
+	function function_get_index out_function_start
+
+	#function function_get_local_list let local_list
+	0 let i
+	while function function_get_arg_c i != do
+		i out_pop_local
+		i ++ let i
+	end
+
+	function function_get_body let token_list
+	0 let i
+	while token_list list_get_size i != do
+		token_list i list_get_index let token
+		program source function token tmp_buffer function_code_gen_token
+		i ++ let i
+	end
+	function function_get_index out_function_end
+end
+
+func function_code_gen_token program source function token tmp_buffer do
+	
+	token token_get_text let token_string
+		
+		token_string "while" streq if
+			token out_label_token
+		else token_string "do" streq elif
+			token token_get_data out_jump_zero_token
+		else token_string "if" streq elif
+			#TODO: improve
+			token token_get_data out_jump_zero_token
+		else token_string "elif" streq elif
+			#TODO: improve
+			token token_get_data out_jump_zero_token
+		else token_string "else" streq elif
+			#TODO: improve
+			token token_get_data out_jump_token
+			token out_label_token
+		else token_string "end" streq elif
+			token token_get_data let token_data
+			token_data null != if
+				token_data out_jump_token
+			end
+			token out_label_token
+
+		else token_string "ret" streq elif
+			function function_get_index out_return
+		else token_string "let" streq elif
+			function function_get_local_list let local_list
+			token token_get_data let local_name
+			local_list local_name string_list_get_index_of_string let local_index
+			#TODO: should never be -1
+			local_index -1 = if
+				"unknown local index: " error
+				local_name error "\n" error
+				reporter_report error fail
+			end
+
+			local_index out_pop_local
+		else token_string "asm" streq elif
+			tmp_buffer token token_get_data str_unescape
+			tmp_buffer "\n" strcat
+			tmp_buffer out_asm
+		else token token_get_type token_type_number = elif #TODO:improve
+			token_string out_push_value	
+		else token_string "-1" streq elif #TODO:improve, quick fix for negative number -1
+			token_string out_push_value
+		else token token_get_type token_type_identifier = elif 
+			function function_get_local_list let local_list
+			local_list token_string string_list_get_index_of_string let local_index
+			
+			local_index -1 != if
+				# identifier is a local variable
+				local_index out_push_local
+			else
+				# identifier is function
+
+				program token_string program_search_for_function let call_func
+				call_func null != if
+					#TODO: better local inc/dec
+					function function_get_local_list list_get_size out_inc_local
+					call_func function_get_index out_call_function
+					function function_get_local_list list_get_size out_dec_local
+				else
+					"undefined function: " error 
+					token_string error "\n" error
+					reporter_report error fail
+				end
+			end
+		else token token_get_type token_type_string = elif
+			token token_get_guid let string_index
+			string_index out_push_string
+		else
+			#TODO: this would be a problem with the compiler
+			"unhandled token type: " error
+			token_string error "\n" error
+			reporter_report error fail
+		end
+
+end
+
+func program_search_for_function program name do
+	program program_get_function_list let function_list
+	0 let i
+	while function_list list_get_size i != do
+		function_list i list_get_index let function		
+		function function_get_name name streq if
+			function ret
+		end		
+		i ++ let i
+	end
+	null ret
+end
+
+#
+# String generation
+#
+func string_gen program tmp_buffer do
+	
+	program program_get_source_list let source_list
+	0 let i
+	while source_list list_get_size i != do
+		source_list i list_get_index let source
+		program source tmp_buffer string_gen_source
+		i ++ let i
+	end
+end
+
+func string_gen_source program source tmp_buffer do
+	source source_get_function_list let function_list
+	0 let i
+	while function_list list_get_size i != do
+		function_list i list_get_index let function
+		program source function tmp_buffer string_gen_function
+		i ++ let i
+	end
+end
+
+func string_gen_function program source function tmp_buffer do
+
+	function function_get_string_list let string_list
+	0 let i
+	while string_list list_get_size i != do
+		string_list i list_get_index let string
+		string token_get_text let raw_string
+		string token_get_guid let string_index
+		tmp_buffer raw_string str_unescape
+		string_index tmp_buffer out_define_string
+		i ++ let i
+	end
+end

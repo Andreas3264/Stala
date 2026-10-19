@@ -1,12 +1,24 @@
-
 func token_type_string do "type:string" end
 func token_type_identifier do "type:identifier" end
 func token_type_number do "type:number" end
 
+func token_guid_ptr do "012345678" end
+
+func token_init do
+	token_guid_ptr let buffer
+	buffer 0 !ptr
+end
 
 func new_token do
-	2 new_array let token
+	4 new_array let token
 	token "" token_set_text
+
+	token_guid_ptr ?ptr let guid
+	token guid token_set_guid
+	guid ++ let guid
+	token_guid_ptr guid !ptr
+
+	token null token_set_data
 	token ret
 end
 
@@ -15,3 +27,15 @@ func token_set_text token text do token 0 text array_set_index end
 
 func token_get_type token	 do token 1 array_get_index end
 func token_set_type token type do token 1 type array_set_index end
+
+func token_get_guid token	 do token 2 array_get_index end
+func token_set_guid token guid do token 2 guid array_set_index end
+
+func token_get_data token	 do token 3 array_get_index end
+func token_set_data token data do token 3 data array_set_index end
+
+func token_get_label token dst do
+	token token_get_guid let guid
+	dst "t_" strcpy
+	dst dst strlen + guid 10 int_to_str
+end

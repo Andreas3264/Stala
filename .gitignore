@@ -9,3 +9,5 @@ run.sh
 test.stala
 /boot test
 /dist
+stala
+scripts/compile_test.sh
