@@ -1,0 +1,88 @@
+func reporter_struct do "01234567" end
+
+func init_reporter do
+	8 new_array let reporter
+	reporter_struct reporter !ptr
+	"" report_begin_source
+	"" report_begin_function
+end
+
+func reporter_report do
+	4096 malloc let str
+	str "source: " strcpy
+	str 0 reporter_get_index strcat
+	str "\nfunction: " strcat
+	str 1 reporter_get_index strcat
+	#str "\nline: " strcat
+	#str str strlen + 2 reporter_get_index 10 int_to_str
+	str "\n" strcat
+	str
+end
+
+func reporter_get_index index do reporter_struct ?ptr index array_get_index end
+func reporter_set_index index value do reporter_struct ?ptr index value array_set_index end
+
+func report_begin_source source do 0 source reporter_set_index 2 1 reporter_set_index end
+func report_end_source do 0 "" reporter_set_index end
+
+func report_begin_function function do 1 function reporter_set_index end
+func report_end_function do 1 "" reporter_set_index end
+
+func report_newline do 2 2 reporter_get_index ++ reporter_set_index end
+
+func report_set_status status do 3 status reporter_set_index end
+func report_get_status do 3 reporter_get_index end
+
+func report_set_token token do 4 token reporter_set_index end
+func report_get_token do 4 reporter_get_index end
+
+
+func error_report_block_error message do
+	"invalid control flow: " error
+	message error "\n" error
+	reporter_report error fail
+end
+
+func error_report_failed_to_define_main do
+	"expected definition not defined: " error "\n" error fail
+end
+
+func error_report_undefined message do
+	"undefined: " error message error "\n" error
+	reporter_report error fail
+end
+
+func error_report_unreachable message do
+	"unreachable: " error message error "\n" error fail
+end
+
+func error_report_assert_not_empty tokens do
+	tokens list_get_size 0 != if ret end
+	"unexpected end of tokens\n" error
+	reporter_report error fail
+end
+
+func error_report_duplicate_function function do
+	"function already defined: " error
+	function function_get_name error "\n" error
+	reporter_report error fail
+end
+
+func error_report_missing_file file_name do
+	"unable to find file: " error
+	file_name error "\n" error
+	reporter_report error fail
+end
+
+func error_report_assert_token_type found expected do
+	found expected = if ret end
+	"ASSERT message" let assert_message
+	report_get_token let token
+	token null != if
+		token token_get_text let assert_message
+	end
+	assert_message error "\n" error
+	"expected: " error expected error "\n" error
+	"found: " error found error "\n" error
+	reporter_report error fail
+end

@@ -2,25 +2,21 @@
 func parser_parse_program input_file input_file_name do
 
 	new_program let program
-
+	
 	token_init
+
+	init_reporter
+	input_file_name report_begin_source
 
 	new_list let include_list
 	include_list input_file_name list_add
 
 	while include_list list_get_size 0 != do
-		
-		# more included files to parse
-		# to_include_list list_pop let include_string
 		include_list list_pop let include_string
 				
 		include_string try_open_file let input_file
-
 		input_file -1 = if
-			#TODO:incorrect source file of "include" may be reported here
-			"unable to find file: " error
-			include_string error "\n" error
-			reporter_report error fail
+			include_string error_report_missing_file
 		end
 		include_string report_begin_source
 
@@ -50,9 +46,17 @@ func parser_parse_source tokens include_list program source do
 			new_function let function
 			function token token_get_guid function_set_index
 			source source_get_function_list function list_add
-			program program_get_function_list function list_add
 			tokens source function parser_parse_function
-			#TODO:check function name collisions
+
+			#check function name collisions
+			program function function_get_name program_search_for_function let other_function
+			other_function null != if
+				#TODO set correct token, can be EOF
+				#tokens list_peek report_set_token
+				other_function error_report_duplicate_function
+			end
+			program program_get_function_list function list_add
+
 			function function_get_name "main" streq if
 				program function program_set_main_function
 			end
@@ -72,23 +76,17 @@ end
 func parser_parse_include tokens include_list tmp_buffer do
 	
 	tokens list_pop
-	tokens list_get_size 0 = if
-		"unexpected end of tokens after include\n" error
-		reporter_report error fail
-	end
+	#TODO set reporter status
+	tokens error_report_assert_not_empty
 	tokens list_pop let token
 
-	token token_get_type token_type_string = if
-		# get file name from string
-		token token_get_text let token_string
-		tmp_buffer token_string str_unescape
-		tmp_buffer strdup let include_string
-		include_list include_string list_push
-	else
-		"unexpected token after include: " error
-		token_string error "\n" error
-		reporter_report error fail
-	end
+	token report_set_token
+	token token_get_type token_type_string error_report_assert_token_type
+
+	token token_get_text let token_string
+	tmp_buffer token_string str_unescape
+	tmp_buffer strdup let include_string
+	include_list include_string list_push
 end
 
 # start -> func
@@ -108,36 +106,36 @@ end
 # returns function name
 func parser_parse_function_name tokens do
 	tokens list_pop let void	
-	tokens list_get_size 0 = if
-		"unexpected end of tokens after func\n" error
-		reporter_report error fail
-	end
+	#TODO set reporter status
+	tokens error_report_assert_not_empty
+
+	tokens list_peek report_set_token
+	tokens list_peek token_get_type token_type_identifier error_report_assert_token_type
+
 	tokens list_pop token_get_text let function_name
+	function_name report_begin_function
 	function_name ret
 end
 
 # start -> arg1 or do
-# end -> do
+# end -> after do
 func parser_parse_function_args tokens locals_list do
 
 	while true do
-		tokens list_get_size 0 = if
-			"unexpected end of tokens in function arguments\n" error
-			reporter_report error fail
-		end
+		#TODO set reporter status
+		tokens error_report_assert_not_empty
 		
 		tokens list_pop let token
 		token token_get_text let token_string
 
 		token_string "do" streq if
 			ret
-		else token token_get_type token_type_identifier = elif
-			locals_list token_string list_add
-		else
-			"unexpected token in function argument: " error
-			token_string error "\n" error
-			reporter_report error fail
-		end		
+		end
+		
+		token report_set_token
+		token token_get_type token_type_identifier error_report_assert_token_type
+
+		locals_list token_string list_add		
 	end
 end
 
@@ -151,10 +149,8 @@ func parser_parse_block tokens source function do
 	new_list let block_stack 
 
 	while true do
-		tokens list_get_size 0 = if
-			"unexpected end of tokens in function body\n" error
-			reporter_report error fail
-		end
+		#TODO set reporter status
+		tokens error_report_assert_not_empty
 
 		tokens list_pop let token
 		token token_get_text let token_string
@@ -165,23 +161,37 @@ func parser_parse_block tokens source function do
 			chain token list_add
 			block_stack chain list_push
 		else token_string "do" streq elif
-
-			#TODO: validate that chain is correct
+			block_stack list_get_size 0 = if
+				"missing block before do" error_report_block_error
+			end
 			block_stack list_peek let chain
+			chain 0 list_get_index token_get_text "while" streq false = if
+				"missing while before do" error_report_block_error
+			end
 			chain token list_add
 		else token_string "if" streq elif
 			new_list let chain
 			chain token list_add
 			block_stack chain list_push
 		else token_string "elif" streq elif
-
-			#TODO: validate that chain is correct
+			block_stack list_get_size 0 = if
+				"missing block before elif" error_report_block_error
+			end
 			block_stack list_peek let chain
+			chain list_peek token_get_text "else" streq false = if
+				"missing else before elif" error_report_block_error
+			end
 			chain token list_add
 		else token_string "else" streq elif
-
-			#TODO: validate that chain is correct
+			block_stack list_get_size 0 = if
+				"missing block before else" error_report_block_error
+			end
 			block_stack list_peek let chain
+			chain list_peek token_get_text "if" streq false = if
+				chain list_peek token_get_text "elif" streq false = if
+					"missing if/elif before else" error_report_block_error
+				end
+			end
 			chain token list_add
 		else token_string "end" streq elif
 			block_stack list_get_size 0 = if
@@ -190,13 +200,31 @@ func parser_parse_block tokens source function do
 				ret
 			else
 				block_stack list_pop let chain
-				chain token list_add
-				
-				#TODO: handle closing of chain
-				chain handle_chain
+				chain list_peek token_get_text "do" streq if
+					# end of while-do
+					chain token list_add
+					chain handle_while_chain
+				else chain list_peek token_get_text "if" streq elif
+					# end of if-end
+					chain token list_add
+					chain handle_if_chain
+				else chain list_peek token_get_text "elif" streq elif
+					# end of if-else-elif-end
+					chain token list_add
+					chain handle_if_chain
+				else chain list_peek token_get_text "else" streq elif
+					# end of if/elif-else end
+					chain token list_add
+					chain handle_if_chain
+				else chain list_peek token_get_text "while" streq elif
+					# invalid while-end
+					"while-end" error_report_block_error
+				else
+					"invalid chain token" error_report_unreachable
+				end
 			end
 		else token_string "ret" streq elif
-			#TODO: handle ret
+			# nothing to do here
 		else token_string "let" streq elif
 			tokens parser_parse_let let local_name
 			token local_name token_set_data
@@ -205,10 +233,10 @@ func parser_parse_block tokens source function do
 		else token_string "asm" streq elif
 			tokens parser_parse_asm let asm_string
 			token asm_string token_set_data
-		else token token_get_type token_type_number = elif #TODO:improve
-			#TODO: handle number	
+		else token token_get_type token_type_number = elif
+			# nothing to do here
 		else token_string "-1" streq elif #TODO:improve, quick fix for negative number -1
-			#TODO: handle -1
+			# nothing to do here
 		else token token_get_type token_type_identifier = elif 
 			# local variable or function call
 		else token token_get_type token_type_string = elif
@@ -221,23 +249,8 @@ func parser_parse_block tokens source function do
 	end
 end
 
-func handle_chain chain do
-	
-	chain 0 list_get_index let first_token
-	first_token token_get_text let token_string
-
-	token_string "while" streq if
-		chain handle_while_chain
-	else token_string "if" elif
-		chain handle_if_chain
-	else
-		#TODO: this would be a compiler error
-	end
-end
-
 func handle_if_chain chain do
-	#TODO:validate chain
-	chain chain list_get_size -- list_get_index let last_token	
+	chain list_peek let last_token	
 	0 let i
 	while chain list_get_size i != do
 		chain i list_get_index let token
@@ -257,37 +270,19 @@ func handle_if_chain chain do
 		else token_string "end" streq elif
 			# do nothing
 		else
-			#TODO: improve
-			"unexpected token in if chain: " error
-			token_string error "\n" error
-			reporter_report error fail
+			"invalid if chain" error_report_unreachable
 		end
-		
-
 		i ++ let i
 	end
-
 end
 
 func handle_while_chain chain do
-	#TODO: assert chain size
-	
-	chain list_get_size 3 != if #TODO:improve
-		"unexpected chain length while: " error
-		"01234567" dup chain list_get_size 10 int_to_str error
-		reporter_report error fail
-	end
-
 	chain 0 list_get_index let while_token
 	chain 1 list_get_index let do_token
 	chain 2 list_get_index let end_token
-	#TODO validate chain
-
 	# while gets just a label
-
 	# do is jump_zero to end
 	do_token end_token token_set_data
-
 	# end is jump to while
 	end_token while_token token_set_data
 end
@@ -296,11 +291,9 @@ end
 # end -> after identifier
 # returns variable name
 func parser_parse_let tokens do
-	tokens list_get_size 0 = if
-		"unexpected end of tokens after let\n" error
-		reporter_report error fail
-	end
-	#TODO: assert identifier
+	tokens error_report_assert_not_empty
+	tokens list_peek report_set_token
+	tokens list_peek token_get_type token_type_identifier error_report_assert_token_type
 	tokens list_pop token_get_text let local_name
 	local_name ret
 end
@@ -309,11 +302,10 @@ end
 # end -> after " "
 # returns asm string
 func parser_parse_asm tokens do
-	tokens list_get_size 0 = if
-		"unexpected end of tokens after asm\n" error
-		reporter_report error fail
-	end
-	#TODO: assert string
+	#TODO set reporter status
+	tokens error_report_assert_not_empty
+	tokens list_peek report_set_token
+	tokens list_peek token_get_type token_type_string error_report_assert_token_type
 	tokens list_pop token_get_text let asm_string
 	asm_string ret
 end

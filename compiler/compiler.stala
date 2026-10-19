@@ -4,6 +4,7 @@ include "compiler/token.stala"
 include "compiler/parser.stala"
 include "compiler/compiler_objects.stala"
 include "compiler/code_generator.stala"
+include "compiler/error_reporter.stala"
 
 func main args do
 
@@ -21,9 +22,6 @@ func main args do
 	args sizeof(ptr) + let args
 	
 	output_file out_file !ptr
-	
-	init_reporter
-	input_file_path report_begin_source
 
 	input_file input_file_path parser_parse_program
 
@@ -73,42 +71,6 @@ func out_label_token token do
 	label out_label
 end
 
-#
-# ERROR REPORTING
-#
-
-func reporter_struct do "01234567" end
-
-func init_reporter do
-	8 new_array let reporter
-	reporter_struct reporter !ptr
-	"" report_begin_source
-	"" report_begin_function
-end
-
-func reporter_report do
-	4096 malloc let str
-	str "source: " strcpy
-	str 0 reporter_get_index strcat
-	str "\nfunction: " strcat
-	str 1 reporter_get_index strcat
-	str "\nline: " strcat
-	str str strlen + 2 reporter_get_index 10 int_to_str
-	str "\n" strcat
-	str
-end
-
-func reporter_get_index index do reporter_struct ?ptr index array_get_index end
-func reporter_set_index index value do reporter_struct ?ptr index value array_set_index end
-
-func report_begin_source source do 0 source reporter_set_index 2 1 reporter_set_index end
-func report_end_source do 0 "" reporter_set_index end
-
-func report_begin_function function do 1 function reporter_set_index end
-func report_end_function do 1 "" reporter_set_index end
-
-func report_newline do 2 2 reporter_get_index ++ reporter_set_index end
-
 func str_unescape dst src do
 	# ignore first "
 	src ++ let src 
@@ -144,4 +106,3 @@ func str_unescape dst src do
 		src ++ let src
 	end
 end
-

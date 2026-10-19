@@ -15,6 +15,19 @@ func program_set_function_list program list do program 1 list array_set_index en
 func program_get_main_function program          do program 2          array_get_index end
 func program_set_main_function program function do program 2 function array_set_index end
 
+func program_search_for_function program name do
+	program program_get_function_list let function_list
+	0 let i
+	while function_list list_get_size i != do
+		function_list i list_get_index let function		
+		function function_get_name name streq if
+			function ret
+		end		
+		i ++ let i
+	end
+	null ret
+end
+
 func new_source do
 	2 new_array let source
 	source "unnamed source" source_set_name
