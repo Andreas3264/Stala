@@ -21,12 +21,13 @@ func main args do
 	output_file_path create_and_open_file let out_file
 	args sizeof(ptr) + let args
 	
-	output_file out_file !ptr
+	out_file new_file_writer let file_writer
+	output_file file_writer !ptr
 
-	input_file input_file_path parser_parse_program
+	input_file_path parser_parse_program let program
+	program code_gen
 
-	out_file close_file
-
+	file_writer file_writer_close
 	"Memory use: " print get_memory_use print_int "\n" print
 end
 
@@ -36,8 +37,8 @@ func print_output_enabled do false end
 
 func out_asm str do
 	print_output_enabled if str print end
-	output_file ?ptr -1 = if ret end
-	output_file ?ptr str file_write_string
+	output_file ?ptr let file_writer
+	file_writer str file_writer_write_string
 end
 
 func out_asm_number val do

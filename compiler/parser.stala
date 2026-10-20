@@ -1,5 +1,5 @@
 
-func parser_parse_program input_file input_file_name do
+func parser_parse_program input_file_name do
 
 	new_program let program
 	
@@ -20,15 +20,16 @@ func parser_parse_program input_file input_file_name do
 		end
 		include_string report_begin_source
 
-		new_list let tokens
-		input_file tokens tokenizer_tokenize let void
-		
+		input_file new_file_reader let file_reader
+		file_reader new_list tokenizer_tokenize let tokens
+		file_reader file_reader_close		
+
 		new_source let source
 		source include_string source_set_name
 		program program_get_source_list source list_add
 		tokens include_list program source parser_parse_source
 	end
-	program code_gen
+	program ret
 end
 
 

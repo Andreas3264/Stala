@@ -1,0 +1,51 @@
+func get_file_writer_buffer_size do 4096 end
+
+func new_file_writer file do
+	3 new_array let file_writer
+	file_writer get_file_writer_buffer_size malloc file_writer_set_buffer
+	file_writer 0 file_writer_set_current
+	file_writer file file_writer_set_file
+	file_writer ret
+end
+
+func file_writer_get_buffer file_writer        do file_writer 0        array_get_index end
+func file_writer_set_buffer file_writer buffer do file_writer 0 buffer array_set_index end
+
+func file_writer_get_current file_writer         do file_writer 1         array_get_index end
+func file_writer_set_current file_writer current do file_writer 1 current array_set_index end
+
+func file_writer_get_file file_writer      do file_writer 2      array_get_index end
+func file_writer_set_file file_writer file do file_writer 2 file array_set_index end
+
+func file_writer_write_string file_writer string do
+	file_writer file_writer_get_file let file
+	file_writer file_writer_get_current let current
+	file_writer file_writer_get_buffer let buffer
+
+	string strlen let len
+
+	current len + get_file_writer_buffer_size >= if
+		# string would overflow the buffer, flush it
+		file buffer current write let w_len
+		file_writer 0 file_writer_set_current
+		0 let current
+	end
+
+	len get_file_writer_buffer_size >= if
+		# string does not fit in buffer
+		file string len write let w_len
+	else
+		# add string to buffer
+		buffer current + string strcpy
+		file_writer current len + file_writer_set_current
+	end
+end
+
+func file_writer_close file_writer do
+	file_writer file_writer_get_file let file
+	file_writer file_writer_get_current let current
+	file_writer file_writer_get_buffer let buffer
+	file buffer current write let w_len
+	file_writer 0 file_writer_set_current
+	file close_file
+end

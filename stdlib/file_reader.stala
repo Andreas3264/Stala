@@ -1,0 +1,47 @@
+func get_file_reader_buffer_size do 4096 end
+
+func new_file_reader file do
+	4 new_array let file_reader
+	file_reader get_file_reader_buffer_size malloc file_reader_set_buffer
+	file_reader 0 file_reader_set_current
+	file_reader 0 file_reader_set_end
+	file_reader file file_reader_set_file
+	file_reader ret
+end
+
+func file_reader_get_buffer file_reader        do file_reader 0        array_get_index end
+func file_reader_set_buffer file_reader buffer do file_reader 0 buffer array_set_index end
+
+func file_reader_get_current file_reader         do file_reader 1         array_get_index end
+func file_reader_set_current file_reader current do file_reader 1 current array_set_index end
+
+func file_reader_get_end file_reader   do file_reader 2   array_get_index end
+func file_reader_set_end file_reader e do file_reader 2 e array_set_index end
+
+func file_reader_get_file file_reader      do file_reader 3      array_get_index end
+func file_reader_set_file file_reader file do file_reader 3 file array_set_index end
+
+func file_reader_next_char file_reader do
+	file_reader file_reader_get_file let file
+	file_reader file_reader_get_current let current
+	file_reader file_reader_get_end let e
+	file_reader file_reader_get_buffer let buffer
+
+	current e = if
+		file buffer get_file_reader_buffer_size read let len
+		len 0 <= if
+			-1 ret
+		end
+		file_reader 0 file_reader_set_current
+		file_reader len file_reader_set_end
+	end
+
+	buffer file_reader file_reader_get_current + ?8 let char
+	file_reader file_reader file_reader_get_current ++ file_reader_set_current
+	#file file_read_char let char
+	char ret
+end
+
+func file_reader_close file_reader do
+	file_reader file_reader_get_file let file
+end
