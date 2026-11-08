@@ -1,9 +1,6 @@
 
 func print_comments_enabled do false end
 
-func bytes_per_register do 8 end
-func func_auto_reserve do 256 end
-
 #
 # ASSEMBLY OUTPUT
 #
@@ -29,16 +26,13 @@ func out_section_code main_function_index do
 	"mov [rel lsp], rax\n" out_asm
 
 	# ENVP
-	"mov rax, rdx\n" out_asm
-	"call push_rax\n" out_asm
+	"call push_rdx\n" out_asm
 
 	# ARGC
-	"mov rax, rdi\n" out_asm
-	"call push_rax\n" out_asm
+	"call push_rdi\n" out_asm
 
 	# ARGV
-	"mov rax, rsi\n" out_asm
-	"call push_rax\n" out_asm
+	"call push_rsi\n" out_asm
 
 	main_function_index out_call_function
 
@@ -85,10 +79,10 @@ func out_call_function index do
 	"call func_" out_asm index out_asm_number "\n" out_asm
 end
 
-func out_function_start index do
+func out_function_start index local_c do
 	"\n" out_asm
 	"func_" out_asm index out_asm_number ":\n" out_asm
-	func_auto_reserve out_inc_local
+	local_c out_inc_local
 end
 
 func out_return index do
@@ -96,51 +90,33 @@ func out_return index do
 	"jmp end_func_" out_asm index out_asm_number "\n" out_asm
 end
 
-func out_function_end index do
+func out_function_end index local_c do
 	print_comments_enabled if ";; end of function\n" out_asm end
 	"end_func_" out_asm index out_asm_number ":\n" out_asm
-	func_auto_reserve out_dec_local
+	local_c out_dec_local
 	"ret\n" out_asm
 end
 
 func out_push_local index do
 	print_comments_enabled if ";; push local variable\n" out_asm  end
-	"mov rbx, [rel lsp]\n" out_asm
-	"mov rax, [rbx + " out_asm index bytes_per_register * out_asm_number "]\n" out_asm
-	"call push_rax\n" out_asm
+	"mov rax, " out_asm  index out_asm_number "\n" out_asm
+	"call pushl\n" out_asm
 end
 
 func out_pop_local index do
 	print_comments_enabled if ";; pop local variable\n" out_asm  end
-	"call pop_rax\n" out_asm
-	"mov rbx, [rel lsp]\n" out_asm
-	"mov [rbx + " out_asm index bytes_per_register * out_asm_number "], rax\n" out_asm
+	"mov rax, " out_asm  index out_asm_number "\n" out_asm
+	"call popl\n" out_asm
 end
 
 func out_inc_local value do
-
-	value func_auto_reserve < if
-		# called function reserves enough space
-		ret
-	end
-
-	print_comments_enabled if ";; increment local pointer\n" out_asm  end
-	"mov rax, [rel lsp]\n" out_asm
-	"add rax, " out_asm value bytes_per_register * out_asm_number "\n" out_asm
-	"mov [rel lsp], rax\n" out_asm
+	"mov rax, " out_asm value out_asm_number "\n" out_asm
+	"call incl\n" out_asm
 end
 
 func out_dec_local value do
-
-	value func_auto_reserve < if
-		# called function reserved enough space
-		ret
-	end
-
-	print_comments_enabled if ";; decrement local pointer\n" out_asm  end
-	"mov rax, [rel lsp]\n" out_asm
-	"sub rax, " out_asm value bytes_per_register * out_asm_number "\n" out_asm
-	"mov [rel lsp], rax\n" out_asm
+	"mov rax, " out_asm value out_asm_number "\n" out_asm
+	"call decl\n" out_asm
 end
 
 func out_push_value str do

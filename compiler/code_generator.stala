@@ -45,9 +45,10 @@ end
 func function_code_gen_function program source function tmp_buffer do
 	function function_get_name report_begin_function	
 
-	function function_get_index out_function_start
+	function function_get_index
+	function function_get_local_list list_get_size
+	out_function_start
 
-	#function function_get_local_list let local_list
 	0 let i
 	while function function_get_arg_c i != do
 		i out_pop_local
@@ -61,7 +62,9 @@ func function_code_gen_function program source function tmp_buffer do
 		program source function token tmp_buffer function_code_gen_token
 		i ++ let i
 	end
-	function function_get_index out_function_end
+	function function_get_index
+	function function_get_local_list list_get_size
+	out_function_end
 end
 
 func function_code_gen_token program source function token tmp_buffer do
@@ -100,7 +103,7 @@ func function_code_gen_token program source function token tmp_buffer do
 		tmp_buffer "\n" strcat
 		tmp_buffer out_asm
 	else token token_get_type token_type_number = elif
-		token_string out_push_value	
+		token_string out_push_value
 	else token_string "-1" streq elif #TODO:improve, quick fix for negative number -1
 		token_string out_push_value
 	else token token_get_type token_type_identifier = elif 
@@ -113,9 +116,7 @@ func function_code_gen_token program source function token tmp_buffer do
 			# identifier is function
 			program token_string program_search_for_function let call_func
 			call_func null != if
-				function function_get_local_list list_get_size out_inc_local
 				call_func function_get_index out_call_function
-				function function_get_local_list list_get_size out_dec_local
 			else
 				token report_set_token
 				token_string error_report_undefined

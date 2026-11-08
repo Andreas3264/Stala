@@ -188,17 +188,17 @@ func syscall7 num arg1 arg2 arg3 arg4 arg5 arg6 do
 	asm "pop rbp"
 	
 	# this is how a error is detected
-	asm "jc .syscall_error"
+	asm "jc _syscall_error"
 	
 	asm "call push_rax"
 
-	asm "jmp .syscall_end"
+	asm "jmp _syscall_end"
 	
-	asm ".syscall_error:"
+	asm "_syscall_error:"
 
 	asm "mov rax, -1"
 	asm "call push_rax"
 
-	asm ".syscall_end:"
+	asm "_syscall_end:"
 end
 
