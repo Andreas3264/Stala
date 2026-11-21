@@ -6,28 +6,49 @@ include "compiler/compiler_objects.stala"
 include "compiler/code_generator.stala"
 include "compiler/error_reporter.stala"
 
-func main args do
+func main argc argv do
 
-	args sizeof(ptr) + let args # first argument is the name of the compiler
+	#"ARGC: " print argc print_int "" println
+	#argv let ar
+	#while ar ?ptr 0 != do
+	#	"ARG: " print
+	#	ar ?ptr println
+	#	ar sizeof(ptr) + let ar
+	#end
 
-	args ?ptr let input_file_path
-	input_file_path try_open_file let input_file
-	args sizeof(ptr) + let args
+	argc 2 < if "not enough arguments\n" error fail end
 
-	args sizeof(ptr) + let args # should be -out
+	argv ?ptr let path_to_self  argv sizeof(ptr) + let argv # path to this compiler
+	argv ?ptr let path_to_input argv sizeof(ptr) + let argv # path to the program to compile/interpret
 
-	args ?ptr let output_file_path
-	# output_file_path remove_file --------------------- TODO:fix
-	output_file_path create_and_open_file let out_file
-	args sizeof(ptr) + let args
-	
-	out_file new_file_writer let file_writer
-	output_file file_writer !ptr
+	"" let path_to_output
 
-	input_file_path parser_parse_program let program
-	program code_gen
+	while argv ?ptr 0 != do
+		argv ?ptr let argument
+		
+		argument "-out" streq if
+			argv sizeof(ptr) + let argv
+			argv ?ptr 0 = if "missing argument after -out\n" error fail end
+			argv ?ptr let path_to_output
+			argv sizeof(ptr) + let argv
+		else
+			"unknown argument: " error argument error "\n" error fail
+		end
+	end
 
-	file_writer file_writer_close
+	path_to_input parser_parse_program let program
+
+	path_to_output strlen 0 != if
+		# compiler mode
+		path_to_output create_and_open_file let out_file
+		out_file new_file_writer let file_writer
+		output_file file_writer !ptr
+		program code_gen
+		file_writer file_writer_close
+	else
+		# interpreter mode
+	end
+
 	"Memory use: " print get_memory_use print_int "\n" print
 end
 

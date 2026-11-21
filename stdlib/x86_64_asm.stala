@@ -1,3 +1,4 @@
+include "stdlib/x86_64_asm_util.stala"
 # x86 64 asm
 
 func mem_start do

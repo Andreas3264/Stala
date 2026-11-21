@@ -1,6 +1,5 @@
 include "stdlib/x86_64_asm.stala"
-include "stdlib/x86_64_asm_util.stala"
-include "compiler/compiler_out_x86_64.stala"
+include "compiler/output/compiler_out_x86_64.stala"
 include "compiler/compiler.stala"
 
 # this compiler gets compiled to x86_64 assembly

@@ -44,7 +44,7 @@ func error_report_block_error message do
 end
 
 func error_report_failed_to_define_main do
-	"expected definition not defined: " error "\n" error fail
+	"expected definition not defined: main\n" error fail
 end
 
 func error_report_undefined message do
