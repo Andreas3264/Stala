@@ -6,7 +6,7 @@ func new_svm program do
 	
 	svm new_list svm_set_call_stack
 
-	svm 0 svm_set_current_instruction_index
+	svm program program_get_main_function function_get_body svm_set_current_instruction
 	svm program program_get_main_function svm_set_current_function
 	svm program svm_set_program
 
@@ -22,8 +22,8 @@ func svm_set_local_stack svm local_stack do svm 1 local_stack array_set_index en
 func svm_get_call_stack svm            do svm 2            array_get_index end
 func svm_set_call_stack svm call_stack do svm 2 call_stack array_set_index end
 
-func svm_get_current_instruction_index svm                          do svm 3                          array_get_index end
-func svm_set_current_instruction_index svm current_instuction_index do svm 3 current_instuction_index array_set_index end
+func svm_get_current_instruction svm                    do svm 3                    array_get_index end
+func svm_set_current_instruction svm current_instuction do svm 3 current_instuction array_set_index end
 
 func svm_get_current_function svm                  do svm 4                  array_get_index end
 func svm_set_current_function svm current_function do svm 4 current_function array_set_index end
@@ -47,10 +47,9 @@ end
 
 func svm_next svm do
 
-	svm svm_get_current_instruction_index let c_ip
+	svm svm_get_current_instruction let instruction
 	svm svm_get_current_function let c_function
 
-	c_function function_get_body c_ip list_get_index let instruction
 	instruction token_get_text let instruction_text
 
 	instruction_text println
@@ -100,11 +99,14 @@ func svm_next svm do
 	else instruction_text "ret" streq elif
 		svm svm_return
 	else instruction_text "end" streq elif
+		
+		# TODO: check for while-end
+		instruction token_get_next null = if
+			svm svm_return
+		else
+			"unimplemented: end\n" error fail
+		end
 
-		# check for unconditional next while-do-end
-		# TODO: check if this is the last token in the function
-
-		"unimplemented: end\n" error fail
 	else instruction_text "let" streq elif
 		instruction token_get_data let local_name
 		svm svm_get_current_function local_name function_get_index_of_local let local_index
@@ -117,6 +119,7 @@ func svm_next svm do
 		svm svm_get_program instruction_text program_search_for_function let call_function
 		call_function null != if
 			svm call_function svm_call_function
+			true ret
 		else
 			svm svm_get_current_function instruction_text function_get_index_of_local let local_index
 			local_index -1 != if
@@ -129,9 +132,9 @@ func svm_next svm do
 		"unknown instruction: " error instruction_text error fail
 	end
 
-	svm svm_get_current_instruction_index let c_ip
-	c_ip ++ let c_ip
-	svm c_ip svm_set_current_instruction_index
+	svm svm_get_current_instruction let instruction
+	instruction token_get_next let instruction
+	svm instruction svm_set_current_instruction
 	
 	#TODO: check for end of function
 	
@@ -140,10 +143,11 @@ end
 
 func svm_call_function svm function do
 	svm svm_get_call_stack let call_stack
+	call_stack svm svm_get_current_instruction list_push
 	call_stack svm svm_get_current_function list_push
-	call_stack svm svm_get_current_instruction_index list_push
+
 	svm function svm_set_current_function
-	svm 0 -- svm_set_current_instruction_index
+	svm function function_get_body svm_set_current_instruction
 
 	# TODO: set locals
 	function function_get_arg_c let arg_c
@@ -168,8 +172,8 @@ func svm_return svm do
 		"End of program" println
 		exit
 	else
-		svm call_stack list_pop svm_set_current_instruction_index
 		svm call_stack list_pop svm_set_current_function
+		svm call_stack list_pop svm_set_current_instruction
 	end
 end
 

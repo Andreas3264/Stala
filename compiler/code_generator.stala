@@ -55,12 +55,10 @@ func function_code_gen_function program source function tmp_buffer do
 		i ++ let i
 	end
 
-	function function_get_body let token_list
-	0 let i
-	while token_list list_get_size i != do
-		token_list i list_get_index let token
-		program source function token tmp_buffer function_code_gen_token
-		i ++ let i
+	function function_get_body let current_token
+	while current_token null != do
+		program source function current_token tmp_buffer function_code_gen_token
+		current_token token_get_next let current_token
 	end
 	function function_get_index
 	function function_get_local_list list_get_size

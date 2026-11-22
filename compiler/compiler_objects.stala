@@ -43,7 +43,7 @@ func source_set_function_list source list do source 1 list array_set_index end
 func new_function do
 	6 new_array let function
 	function "unnamed function" function_set_name
-	function new_list function_set_body
+	function null function_set_body
 	function 0 function_set_arg_c
 	function new_list function_set_local_list
 	function new_list function_set_string_list
@@ -68,3 +68,8 @@ func function_set_string_list function list do function 4 list array_set_index e
 
 func function_get_index function       do function 5       array_get_index end
 func function_set_index function index do function 5 index array_set_index end
+
+func function_get_index_of_local function name do
+	function function_get_local_list let local_list
+	local_list name string_list_get_index_of_string
+end

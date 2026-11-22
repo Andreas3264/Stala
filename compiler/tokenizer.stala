@@ -32,18 +32,27 @@ func tokenizer_get_is_lexing_token tokenizer do tokenizer 3 array_get_index end
 func tokenizer_set_is_lexing_token tokenizer is_lexing_token do tokenizer 3 is_lexing_token array_set_index end
 
 
-func tokenizer_tokenize file_reader tokens do
+func tokenizer_tokenize file_reader do
 	new_tokenizer let tokenizer
 	true let has_tokens
+	null let first_token
+	null let prev_token
+
 	while has_tokens do
 		tokenizer file_reader tokenizer_next_token let token
 		token token_get_text strlen 0 != if
-			tokens token list_add
+			first_token null = if
+				token let first_token
+			end
+			prev_token null != if
+				prev_token token token_set_next
+			end
+			token let prev_token
 		else
 			false let has_tokens
 		end
 	end
-	tokens ret
+	first_token ret
 end
 
 

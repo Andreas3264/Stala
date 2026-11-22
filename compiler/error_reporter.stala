@@ -56,8 +56,8 @@ func error_report_unreachable message do
 	"unreachable: " error message error "\n" error fail
 end
 
-func error_report_assert_not_empty tokens do
-	tokens list_get_size 0 != if ret end
+func error_report_assert_not_end token do
+	token null != if ret end
 	"unexpected end of tokens\n" error
 	reporter_report error fail
 end
