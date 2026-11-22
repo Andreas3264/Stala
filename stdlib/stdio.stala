@@ -15,7 +15,7 @@ func print_hex num do
 	"1234567890123456" let tmp
 	0 let i
 	while i 16 != do
-		num 0xf AND "0123456789abcdef" + ?8 let char
+		num 0xf and "0123456789abcdef" + ?8 let char
 		tmp 15 i - + char !8
 		
 		i ++ let i

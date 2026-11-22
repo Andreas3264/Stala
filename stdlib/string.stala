@@ -125,7 +125,7 @@ end
 
 
 func try_str_to_int str base do
-	base 2 < base 16 > OR if "invalid base" fail exit end
+	base 2 < base 16 > or if "invalid base" fail exit end
 	1 let factor
 	str ?8 "-" ?8 = if
 		-1 let factor str ++ let str 
@@ -147,33 +147,33 @@ func try_str_to_int str base do
 			value 0 + let value
 		else char "1" ?8 = elif
 			value 1 + let value
-		else char "2" ?8 = base 2 > AND elif
+		else char "2" ?8 = base 2 > and elif
 			value 2 + let value
-		else char "3" ?8 = base 3 > AND elif
+		else char "3" ?8 = base 3 > and elif
 			value 3 + let value
-		else char "4" ?8 = base 4 > AND elif
+		else char "4" ?8 = base 4 > and elif
 			value 4 + let value
-		else char "5" ?8 = base 5 > AND elif
+		else char "5" ?8 = base 5 > and elif
 			value 5 + let value
-		else char "6" ?8 = base 6 > AND elif
+		else char "6" ?8 = base 6 > and elif
 			value 6 + let value
-		else char "7" ?8 = base 7 > AND elif
+		else char "7" ?8 = base 7 > and elif
 			value 7 + let value
-		else char "8" ?8 = base 8 > AND elif
+		else char "8" ?8 = base 8 > and elif
 			value 8 + let value
-		else char "9" ?8 = base 9 > AND elif
+		else char "9" ?8 = base 9 > and elif
 			value 9 + let value
-		else char "a" ?8 = base 10 > AND elif
+		else char "a" ?8 = base 10 > and elif
 			value 10 + let value
-		else char "b" ?8 = base 11 > AND elif
+		else char "b" ?8 = base 11 > and elif
 			value 11 + let value
-		else char "c" ?8 = base 12 > AND elif
+		else char "c" ?8 = base 12 > and elif
 			value 12 + let value
-		else char "d" ?8 = base 13 > AND elif
+		else char "d" ?8 = base 13 > and elif
 			value 13 + let value
-		else char "e" ?8 = base 14 > AND elif
+		else char "e" ?8 = base 14 > and elif
 			value 14 + let value
-		else char "f" ?8 = base 15 > AND elif
+		else char "f" ?8 = base 15 > and elif
 			value 15 + let value
 		else
 			false 0 ret
@@ -186,7 +186,7 @@ end
 
 func int_to_str dst val base do
 	
-	base 2 < base 16 > OR if "invalid base" fail exit end
+	base 2 < base 16 > or if "invalid base" fail exit end
 	
 	val 0 < if
 		dst "-" ?8 !8

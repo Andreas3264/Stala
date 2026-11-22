@@ -5,6 +5,7 @@ include "compiler/parser.stala"
 include "compiler/compiler_objects.stala"
 include "compiler/code_generator.stala"
 include "compiler/error_reporter.stala"
+include "compiler/interpreter.stala"
 
 func main argc argv do
 
@@ -47,6 +48,7 @@ func main argc argv do
 		file_writer file_writer_close
 	else
 		# interpreter mode
+		program interpret
 	end
 
 	"Memory use: " print get_memory_use print_int "\n" print

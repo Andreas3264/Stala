@@ -91,9 +91,8 @@ func function_code_gen_token program source function token tmp_buffer do
 	else token_string "ret" streq elif
 		function function_get_index out_return
 	else token_string "let" streq elif
-		function function_get_local_list let local_list
 		token token_get_data let local_name
-		local_list local_name string_list_get_index_of_string let local_index
+		function local_name function_get_index_of_local let local_index
 		local_index -1 = if 
 			"token index -1" error_report_unreachable
 		end
@@ -108,7 +107,7 @@ func function_code_gen_token program source function token tmp_buffer do
 		token_string out_push_value
 	else token token_get_type token_type_identifier = elif 
 		function function_get_local_list let local_list
-		local_list token_string string_list_get_index_of_string let local_index
+		function token_string function_get_index_of_local let local_index
 		local_index -1 != if
 			# identifier is a local variable
 			local_index out_push_local

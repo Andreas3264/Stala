@@ -1,0 +1,336 @@
+func new_svm program do
+	8 new_array let svm
+	svm new_list svm_set_data_stack
+	svm new_list svm_set_local_stack
+	#svm new_list svm_set_memory
+	
+	svm new_list svm_set_call_stack
+
+	svm 0 svm_set_current_instruction_index
+	svm program program_get_main_function svm_set_current_function
+	svm program svm_set_program
+
+	svm ret
+end
+
+func svm_get_data_stack svm            do svm 0            array_get_index end
+func svm_set_data_stack svm data_stack do svm 0 data_stack array_set_index end
+
+func svm_get_local_stack svm             do svm 1             array_get_index end
+func svm_set_local_stack svm local_stack do svm 1 local_stack array_set_index end
+
+func svm_get_call_stack svm            do svm 2            array_get_index end
+func svm_set_call_stack svm call_stack do svm 2 call_stack array_set_index end
+
+func svm_get_current_instruction_index svm                          do svm 3                          array_get_index end
+func svm_set_current_instruction_index svm current_instuction_index do svm 3 current_instuction_index array_set_index end
+
+func svm_get_current_function svm                  do svm 4                  array_get_index end
+func svm_set_current_function svm current_function do svm 4 current_function array_set_index end
+
+func svm_get_program svm         do svm 5         array_get_index end
+func svm_set_program svm program do svm 5 program array_set_index end
+
+
+func interpret program do
+	"INTERPRETER MODE" println
+
+	program new_svm let svm
+
+	true let running
+	while running do
+		svm svm_next let running
+		svm svm_print_data_stack
+	end
+end
+
+
+func svm_next svm do
+
+	svm svm_get_current_instruction_index let c_ip
+	svm svm_get_current_function let c_function
+
+	c_function function_get_body c_ip list_get_index let instruction
+	instruction token_get_text let instruction_text
+
+	instruction_text println
+	
+	instruction token_get_type token_type_number = if
+		svm instruction_text 10 str_to_int svm_push_value
+	else instruction token_get_type token_type_string = elif
+		"string type unimplemented" error fail # ----------------
+	
+
+	# START OF INTRINSICCS
+
+
+	else instruction_text "!ptr" streq elif
+		svm svm_intrinsic_write_ptr
+	else instruction_text "?ptr" streq elif
+		svm svm_intrinsic_read_ptr
+	else instruction_text "!8" streq elif
+		svm svm_intrinsic_write_byte
+	else instruction_text "?8" streq elif
+		svm svm_intrinsic_read_byte
+	else instruction_text "+" streq elif
+		svm svm_intrinsic_add
+	else instruction_text "-" streq elif
+		svm svm_intrinsic_sub
+	else instruction_text "*" streq elif
+		svm svm_intrinsic_mul
+	else instruction_text "DIVMOD" streq elif
+		svm svm_intrinsic_divmod
+	else instruction_text ">>" streq elif
+		svm svm_intrinsic_shr
+	else instruction_text "bit_and" streq elif
+		svm svm_intrinsic_bit_and
+	else instruction_text "bit_not" streq elif
+		svm svm_intrinsic_bit_not
+	else instruction_text "=" streq elif
+		svm svm_intrinsic_equal
+	else instruction_text ">" streq elif
+		svm svm_intrinsic_greater
+	else instruction_text "syscall7" streq elif
+		svm svm_intrinsic_syscall7
+	
+
+	# START OF KEYWORDS
+
+
+	else instruction_text "ret" streq elif
+		svm svm_return
+	else instruction_text "end" streq elif
+
+		# check for unconditional next while-do-end
+		# TODO: check if this is the last token in the function
+
+		"unimplemented: end\n" error fail
+	else instruction_text "let" streq elif
+		instruction token_get_data let local_name
+		svm svm_get_current_function local_name function_get_index_of_local let local_index
+		local_index -1 != if
+			svm local_index svm_pop_local
+		else
+			"unknown identifier after let: " error local_name error fail
+		end
+	else instruction token_get_type token_type_identifier = elif
+		svm svm_get_program instruction_text program_search_for_function let call_function
+		call_function null != if
+			svm call_function svm_call_function
+		else
+			svm svm_get_current_function instruction_text function_get_index_of_local let local_index
+			local_index -1 != if
+				svm local_index svm_push_local
+			else
+				"unknown identifier: " error instruction_text error fail
+			end
+		end
+	else
+		"unknown instruction: " error instruction_text error fail
+	end
+
+	svm svm_get_current_instruction_index let c_ip
+	c_ip ++ let c_ip
+	svm c_ip svm_set_current_instruction_index
+	
+	#TODO: check for end of function
+	
+	true ret
+end
+
+func svm_call_function svm function do
+	svm svm_get_call_stack let call_stack
+	call_stack svm svm_get_current_function list_push
+	call_stack svm svm_get_current_instruction_index list_push
+	svm function svm_set_current_function
+	svm 0 -- svm_set_current_instruction_index
+
+	# TODO: set locals
+	function function_get_arg_c let arg_c
+	function function_get_local_list list_get_size let local_c
+
+	svm local_c svm_incl
+
+	0 let i
+	while arg_c i != do
+		svm i svm_pop_local
+		i ++ let i
+	end
+	
+end
+
+func svm_return svm do
+	svm svm_get_call_stack let call_stack
+	svm svm_get_current_function let current_function
+	current_function function_get_local_list list_get_size let local_c
+	svm local_c svm_decl
+	call_stack list_get_size 0 = if
+		"End of program" println
+		exit
+	else
+		svm call_stack list_pop svm_set_current_instruction_index
+		svm call_stack list_pop svm_set_current_function
+	end
+end
+
+func svm_print_data_stack svm do
+	svm svm_get_data_stack let data_stack
+	data_stack list_get_size let size
+	"stack: " print
+	0 let i
+	while i size != do
+		"[" print
+		data_stack i list_get_index print_int 
+		"] " print
+		i ++ let i
+	end
+	"" println
+end
+
+func svm_push_value svm value do
+	svm svm_get_data_stack let data_stack
+	data_stack value list_push
+end
+
+func svm_pop_value svm do
+	# TODO: check list not empty
+	svm svm_get_data_stack let data_stack
+	data_stack list_pop ret
+end
+
+func svm_pop_local svm index do
+	svm svm_pop_value let value
+	svm svm_get_local_stack let local_stack
+	local_stack list_get_size let size
+	local_stack size -- index - value list_set_index
+end
+
+func svm_push_local svm index do
+	svm svm_get_local_stack let local_stack
+	local_stack list_get_size let size
+	local_stack size -- index - list_get_index let value
+	svm value svm_push_value
+end
+
+func svm_incl svm value do
+	0 let i
+	svm svm_get_local_stack let local_stack
+	while value i != do
+		local_stack 0 list_push
+		i ++ let i
+	end
+end
+
+func svm_decl svm value do
+	0 let i
+	svm svm_get_local_stack let local_stack
+	while value i != do
+		local_stack list_pop let val
+		i ++ let i
+	end
+end
+
+# INTRINSICS IMPLEMENTATIONS
+
+func svm_intrinsic_write_ptr svm do
+	svm svm_pop_value let value
+	svm svm_pop_value let addr
+	addr value !ptr let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_read_ptr svm do
+	svm svm_pop_value let addr
+	addr ?ptr let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_write_byte svm do
+	svm svm_pop_value let value
+	svm svm_pop_value let addr
+	addr value !8 let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_read_byte svm do
+	svm svm_pop_value let addr
+	addr ?8 let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_add svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b + let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_sub svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b - let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_mul svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b * let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_divmod svm do # TODO check correctness
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b DIVMOD let r let q
+	svm q svm_push_value
+	svm r svm_push_value
+end
+
+func svm_intrinsic_shr svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b >> let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_bit_and svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b bit_and let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_bit_not svm do
+	svm svm_pop_value let a
+	a bit_not let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_equal svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b = let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_greater svm do
+	svm svm_pop_value let b
+	svm svm_pop_value let a
+	a b > let c
+	svm c svm_push_value
+end
+
+func svm_intrinsic_syscall7 svm do
+	"syscall7 currently disabled" error fail
+	svm svm_pop_value let v7
+	svm svm_pop_value let v6
+	svm svm_pop_value let v5
+	svm svm_pop_value let v4
+	svm svm_pop_value let v3
+	svm svm_pop_value let v2
+	svm svm_pop_value let v1
+	v1 v2 v3 v4 v5 v6 v7 syscall7 let c
+	svm c svm_push_value
+end
+

@@ -106,26 +106,42 @@ func << a b do
 	a 2 * b -- <<
 end
 
-func AND do
+func and a b do
+	a b bit_and
+end
+
+func bit_and do
 	asm "call pop_rax"
 	asm "call pop_rbx"
 	asm "and rax, rbx"
 	asm "call push_rax"
 end
 
-func OR a b do
-	a NOT 
-	b NOT 
-	AND NOT
+func or a b do
+	a b bit_or
 end
 
-func XOR a b do
-	a b NOT AND
-	b a NOT AND
-	OR
+func bit_or a b do
+	a bit_not 
+	b bit_not
+	bit_and bit_not
 end
 
-func NOT do
+func xor a b do
+	a b bit_xor
+end
+
+func bit_xor a b do
+	a b bit_not bit_and
+	b a bit_not bit_and
+	bit_or
+end
+
+func not a do
+	a bit_not
+end
+
+func bit_not do
 	asm "call pop_rax"
 	asm "not rax"
 	asm "call push_rax"

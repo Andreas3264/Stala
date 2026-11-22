@@ -52,7 +52,7 @@ func file_read_line fd buffer length do
 		fd file_read_char let char
 		buffer 0 !8
 		
-		char -1 != char "\n" ?8 != AND if
+		char -1 != char "\n" ?8 != and if
 			buffer  char !8
 			buffer ++ let buffer
 		else
